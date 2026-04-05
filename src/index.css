@@ -1,0 +1,370 @@
+:root {
+  /* Color Palette - Luxurious & Clean Wellness */
+  --bg-stone: #fafaf9; /* Stone-50 */
+  --card-bg: #ffffff;
+  
+  --text-dark: #1c1917; /* Stone-900 */
+  --text-muted: #78716c; /* Stone-500 */
+  --border-light: #e7e5e4; /* Stone-200 */
+
+  --accent-rose: #e11d48; /* Rose-600 */
+  --accent-rose-light: #ffe4e6; /* Rose-100 */
+  
+  --accent-emerald: #059669; /* Emerald-600 */
+  --accent-emerald-light: #d1fae5; /* Emerald-100 */
+  
+  --accent-amber: #d97706; /* Amber-600 for 'Agendado' */
+  --accent-amber-light: #fef3c7; /* Amber-100 */
+
+  --accent-blue: #2563eb; /* Blue-600 for 'Em Andamento' */
+  --accent-blue-light: #dbeafe; /* Blue-100 */
+
+  /* Spacing & Radii */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-full: 9999px;
+  
+  /* Shadows - Extremely soft for luxurious feel */
+  --shadow-lux: 0 4px 20px -2px rgba(28, 25, 23, 0.05);
+  --shadow-fab: 0 8px 16px -4px rgba(225, 29, 72, 0.3);
+
+  font-family: 'Outfit', 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light;
+  color: var(--text-dark);
+  background-color: var(--bg-stone);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  /* To ensure bottom nav doesn't cover content */
+  padding-bottom: 80px; 
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Typography */
+h1 {
+  font-size: 2.2rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 0.5rem;
+}
+
+h2 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0;
+}
+
+h3 {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+p {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.text-muted {
+  color: var(--text-muted);
+  font-size: 1.2rem;
+}
+
+/* Components */
+.mobile-container {
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 1.5rem;
+}
+
+/* Luxury Cards */
+.lux-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-lux);
+  border: 1px solid var(--border-light);
+  margin-bottom: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.lux-card:active {
+  transform: scale(0.98);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.card-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.card-subtitle {
+  font-size: 1.2rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.card-price {
+  font-weight: 600;
+  color: var(--text-dark);
+  font-size: 1.35rem;
+}
+
+/* Badges (Pílulas) */
+.badge {
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-full);
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-agendado {
+  background: var(--accent-amber-light);
+  color: var(--accent-amber);
+}
+
+.badge-andamento {
+  background: var(--accent-blue-light);
+  color: var(--accent-blue);
+}
+
+.badge-pago {
+  background: var(--accent-emerald-light);
+  color: var(--accent-emerald);
+}
+
+/* UI Elements */
+.header-greeting {
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  margin-bottom: 1.2rem;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border-light);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  gap: 4px;
+  cursor: pointer;
+  transition: color 0.2s;
+  flex: 1;
+  height: 100%;
+}
+
+.nav-item.active {
+  color: var(--accent-rose);
+}
+
+.nav-item span {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* Floating Action Menu Configs */
+.fab-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(250, 250, 249, 0.8);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 80;
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fab-menu-container {
+  position: fixed;
+  bottom: 90px;
+  right: 1.5rem;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.fab {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  background: var(--accent-rose);
+  color: white;
+  border: none;
+  box-shadow: var(--shadow-fab);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s, filter 0.2s, background 0.3s;
+}
+
+.fab:active {
+  transform: scale(0.95);
+}
+
+.fab:hover {
+  filter: brightness(1.1);
+}
+
+/* Quando o menu está aberto, o botão fica escuro para indicar fechamento (X) */
+.fab-menu-container.open .fab {
+  background: var(--text-dark);
+}
+
+.fab-menu-options {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  
+  /* Estados Fechados */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(20px);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Animação elástica luxuosa */
+}
+
+.fab-menu-container.open .fab-menu-options {
+  /* Estados Abertos */
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.fab-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s ease;
+}
+
+.fab-option:active {
+  transform: scale(0.95);
+}
+
+.fab-option-label {
+  background: var(--card-bg);
+  padding: 1rem 1.75rem;
+  border-radius: var(--radius-md);
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  box-shadow: var(--shadow-lux);
+}
+
+.fab-option-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-full);
+  background: var(--card-bg);
+  color: var(--accent-rose);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: var(--shadow-lux);
+}
+
+/* Resumo do dia cards */
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.summary-card {
+  background: var(--card-bg);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-lux);
+}
+
+.summary-value {
+  font-size: 2.2rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 0.25rem;
+}
+
+.summary-label {
+  font-size: 1.15rem;
+  color: var(--text-muted);
+}

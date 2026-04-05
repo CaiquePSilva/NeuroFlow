@@ -1,0 +1,150 @@
+/* Form Screen / Overlay */
+.screen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh; /* Para navegadores mobile */
+  background: var(--bg-stone);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1) forwards;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.screen-header {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem;
+  background: rgba(250, 250, 249, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 210;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  color: var(--text-dark);
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  border-radius: var(--radius-full);
+  transition: background 0.2s;
+}
+
+.btn-icon:active {
+  background: var(--border-light);
+}
+
+.screen-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0;
+}
+
+/* Luxurious Form Inputs */
+.form-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 30px;
+}
+
+.form-container {
+  padding: 1.5rem;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.form-group {
+  margin-bottom: 2rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.form-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--card-bg);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.5rem;
+  font-size: 1.25rem;
+  color: var(--text-dark);
+  font-family: inherit;
+  box-shadow: var(--shadow-lux);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  /* Mudei o rosa para esmeralda (verde) para não parecer erro */
+  border-color: var(--accent-emerald);
+  box-shadow: 0 0 0 4px var(--accent-emerald-light);
+}
+
+.form-input::placeholder {
+  color: #a8a29e; /* Stone-400 */
+}
+
+textarea.form-input {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.required-asterisk {
+  color: var(--accent-rose);
+  margin-left: 4px;
+}
+
+/* Fixed Bottom Button Container */
+.bottom-action-bar {
+  padding: 1.5rem;
+  background: var(--bg-stone);
+  border-top: 1px solid var(--border-light);
+  display: flex;
+  justify-content: center;
+  z-index: 220;
+  box-sizing: border-box;
+  width: 100%;
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+}
+
+.btn-primary-large {
+  width: 100%;
+  max-width: 480px;
+  box-sizing: border-box; /* Garante que a borda seja desenhada para dentro do tamanho total */
+  background: var(--accent-rose);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 1.25rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-fab);
+  cursor: pointer;
+  transition: transform 0.2s, filter 0.2s;
+}
+
+.btn-primary-large:active {
+  transform: scale(0.98);
+}
