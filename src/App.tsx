@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Home, Calendar, Users, Plus, Clock, UserPlus, ArrowLeft, Settings, CheckCircle, LogOut } from 'lucide-react'
+import { Home, Calendar, Users, Plus, Clock, UserPlus, ArrowLeft, Settings, CheckCircle } from 'lucide-react'
 import { supabase } from './lib/supabase'
 import './App.css'
 import './form-styles.css'
