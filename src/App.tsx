@@ -1060,6 +1060,14 @@ function App() {
       
       {/* Header Greeting / Assistant Voice */}
       <header className="header-greeting" style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+          <img src="/logo.png" alt="Logo" style={{ width: '48px', height: '48px', objectFit: 'contain' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-dark)', lineHeight: '1.2' }}>Espaço NeuroAprendiz</span>
+            <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>Elvira Portes</span>
+          </div>
+        </div>
+
         {activeTab === 'inicio' ? (
           <>
             <h1 style={{ color: 'var(--accent-rose)', fontSize: '1.8rem', lineHeight: '1.3' }}>
@@ -1248,6 +1256,13 @@ function App() {
           </section>
         )}
       </section>
+
+      {/* Footer Branding */}
+      <div style={{ padding: '2rem 0 3rem 0', textAlign: 'center', opacity: 0.35 }}>
+        <span style={{ fontSize: '1rem', fontWeight: 500 }}>
+          Tecnologia <strong style={{ color: 'var(--text-dark)' }}>Neuro Flow</strong>
+        </span>
+      </div>
 
       {/* Floating Action Menu */}
       {isFabOpen && (
