@@ -42,10 +42,20 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-body {
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
   margin: 0;
+  padding: 0;
   min-width: 320px;
   min-height: 100vh;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
   /* To ensure bottom nav doesn't cover content */
   padding-bottom: 80px; 
 }
