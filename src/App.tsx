@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Home, Calendar, Users, Plus, Clock, UserPlus, ArrowLeft, Settings, CheckCircle } from 'lucide-react'
+import { Home, Calendar, Users, Plus, Clock, UserPlus, ArrowLeft, Settings, CheckCircle, LogOut } from 'lucide-react'
+import { supabase } from './lib/supabase'
 import './App.css'
 import './form-styles.css'
 
@@ -36,6 +37,7 @@ export interface Aprendente {
   motivoEncerramento?: string
   dataEncerramento?: string
   metodoPagamento?: string
+  magicPin?: string
 }
 
 const MOTIVOS_ENCERRAMENTO = [
@@ -47,6 +49,22 @@ const MOTIVOS_ENCERRAMENTO = [
   "Pausa temporária (Trancamento)",
   "Outros"
 ];
+
+// Supabase Adapters
+const parseApFromSupa = (db: any): Aprendente => ({
+  id: db.id, nome: db.nome, dataOuIdade: db.data_ou_idade, responsavel1: db.responsavel_1,
+  responsavel2: db.responsavel_2, contato: db.contato, motivo: db.motivo,
+  tipoSessao: db.tipo_sessao, qtdSessoesAvaliacao: db.qtd_sessoes_avaliacao,
+  formaPagamento: db.forma_pagamento, valorReferencia: db.valor_referencia,
+  duracaoMinutos: db.duracao_minutos, status: db.status, motivoEncerramento: db.motivo_encerramento,
+  dataEncerramento: db.data_encerramento, metodoPagamento: db.metodo_pagamento, magicPin: db.magic_pin
+})
+
+const parseSesFromSupa = (db: any): SessaoAgenda => ({
+  id: db.id, aprendenteId: db.aprendente_id, nomeAprendente: db.nome_aprendente,
+  tipoSessao: db.tipo_sessao, dataRealizacao: db.data_realizacao, horaInicio: db.hora_inicio,
+  horaFim: db.hora_fim, status: db.status, valor: db.valor
+})
 
 function App() {
   const [activeTab, setActiveTab] = useState('inicio')
@@ -85,13 +103,31 @@ function App() {
     return `${d.getFullYear()}-${mm}-${dd}`;
   })
 
-  // On Load: Carregar dados do localStorage
+  // On Load: Carregar dados do Supabase
   useEffect(() => {
-    const savedAp = localStorage.getItem('neuroflow_aprendentes')
-    if (savedAp) setAprendentes(JSON.parse(savedAp))
-
-    const savedSes = localStorage.getItem('neuroflow_sessoes')
-    if (savedSes) setSessoesGlobais(JSON.parse(savedSes))
+    const fetchDados = async () => {
+      const pin = new URLSearchParams(window.location.search).get('pin')
+      if (pin) {
+         const { data: apLogado } = await supabase.from('aprendentes').select('*').eq('magic_pin', pin).single()
+         if (apLogado) {
+            const parsedAp = parseApFromSupa(apLogado)
+            const { data: sesDb } = await supabase.from('sessoes').select('*').eq('aprendente_id', apLogado.id)
+            setAprendentes([parsedAp])
+            setSessoesGlobais(sesDb ? sesDb.map(parseSesFromSupa) : [])
+            setSelectedAprendente(parsedAp)
+            setCurrentScreen('perfil-aprendente')
+            return;
+         }
+      }
+      
+      const [{ data: aps }, { data: ses }] = await Promise.all([
+        supabase.from('aprendentes').select('*'),
+        supabase.from('sessoes').select('*')
+      ])
+      if (aps) setAprendentes(aps.map(parseApFromSupa))
+      if (ses) setSessoesGlobais(ses.map(parseSesFromSupa))
+    }
+    fetchDados()
   }, [])
 
   const dToday = new Date();
@@ -257,25 +293,28 @@ function App() {
     setPhone('')
   }
 
-  const handleSubmitNovoAprendente = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmitNovoAprendente = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const pin = Math.floor(100000 + Math.random() * 900000).toString();
     
-    const novoAprendente: Aprendente = {
-      id: Date.now().toString(),
+    const dbPayload = {
       nome: formData.get('nome') as string,
-      dataOuIdade: ageOrDate,
-      responsavel1: formData.get('resp1') as string,
-      responsavel2: formData.get('resp2') as string,
+      data_ou_idade: ageOrDate,
+      responsavel_1: formData.get('resp1') as string,
+      responsavel_2: formData.get('resp2') as string,
       contato: phone,
       motivo: formData.get('motivo') as string,
-      metodoPagamento: formData.get('metodoPagamento') as string,
-      status: 'ativo'
+      metodo_pagamento: formData.get('metodoPagamento') as string,
+      status: 'ativo',
+      magic_pin: pin
     }
 
-    const novaLista = [novoAprendente, ...aprendentes]
-    setAprendentes(novaLista)
-    localStorage.setItem('neuroflow_aprendentes', JSON.stringify(novaLista))
+    const { data } = await supabase.from('aprendentes').insert([dbPayload]).select().single()
+    if (data) {
+       const novoAprendente = parseApFromSupa(data)
+       setAprendentes([novoAprendente, ...aprendentes])
+    }
     
     handleCloseForm()
   }
@@ -292,32 +331,35 @@ function App() {
     setCurrentScreen('perfil-aprendente')
   }
 
-  const salvarDetalhes = (e: React.FormEvent<HTMLFormElement>) => {
+  const salvarDetalhes = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!selectedAprendente) return;
 
     const formData = new FormData(e.currentTarget);
 
-    const atualizado = {
-      ...selectedAprendente,
+    const updatePayload = {
       nome: formData.get('nome') as string || selectedAprendente.nome,
-      dataOuIdade: ageOrDate || selectedAprendente.dataOuIdade,
-      responsavel1: formData.get('resp1') as string || selectedAprendente.responsavel1,
-      responsavel2: formData.get('resp2') as string || selectedAprendente.responsavel2,
+      data_ou_idade: ageOrDate || selectedAprendente.dataOuIdade,
+      responsavel_1: formData.get('resp1') as string || selectedAprendente.responsavel1,
+      responsavel_2: formData.get('resp2') as string || selectedAprendente.responsavel2,
       contato: phone || selectedAprendente.contato,
       motivo: formData.get('motivo') as string || selectedAprendente.motivo,
-      metodoPagamento: formData.get('metodoPagamento') as string || selectedAprendente.metodoPagamento,
-      tipoSessao: confTipoSessao,
-      qtdSessoesAvaliacao: confTipoSessao === 'Avaliação' ? Number(confQtd) : undefined,
-      formaPagamento: confFormaPagamento,
-      valorReferencia: confValor,
-      duracaoMinutos: confDuracao
+      metodo_pagamento: formData.get('metodoPagamento') as string || selectedAprendente.metodoPagamento,
+      tipo_sessao: confTipoSessao,
+      qtd_sessoes_avaliacao: confTipoSessao === 'Avaliação' ? Number(confQtd) : null,
+      forma_pagamento: confFormaPagamento,
+      valor_referencia: confValor,
+      duracao_minutos: confDuracao
     }
 
-    const novaLista = aprendentes.map(ap => ap.id === atualizado.id ? atualizado : ap)
-    setAprendentes(novaLista)
-    localStorage.setItem('neuroflow_aprendentes', JSON.stringify(novaLista))
-    setSelectedAprendente(atualizado)
+    const { data } = await supabase.from('aprendentes').update(updatePayload).eq('id', selectedAprendente.id).select().single()
+    
+    if (data) {
+       const atualizado = parseApFromSupa(data)
+       const novaLista = aprendentes.map(ap => ap.id === atualizado.id ? atualizado : ap)
+       setAprendentes(novaLista)
+       setSelectedAprendente(atualizado)
+    }
     setCurrentScreen('perfil-aprendente')
   }
 
@@ -337,45 +379,44 @@ function App() {
     return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   }
 
-  const handleSubmitSessao = (e: React.FormEvent) => {
+  const handleSubmitSessao = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAprendente || !agendarData || !agendarHoraInicio) return;
     
     const duracao = parseInt(selectedAprendente.duracaoMinutos || '45', 10);
-    const sessoesGeradas: SessaoAgenda[] = [];
+    const payloadsSupa: any[] = [];
     const isLoteAvaliacao = selectedAprendente.tipoSessao === 'Avaliação' && selectedAprendente.qtdSessoesAvaliacao;
     const qtdSessoes = isLoteAvaliacao ? (selectedAprendente.qtdSessoesAvaliacao as number) : 1;
 
     for (let i = 0; i < qtdSessoes; i++) {
-       // Calcular data corrigindo fuso horário (Meio dia isola Date bugs)
        const baseDate = new Date(agendarData + 'T12:00:00'); 
        baseDate.setDate(baseDate.getDate() + (i * 7));
        const dataNovaIso = baseDate.toISOString().split('T')[0];
 
-       // Adicionar Sufixo Discreto [X/Y]
        const tipoDisplay = qtdSessoes > 1 
          ? `Avaliação [${i + 1}/${qtdSessoes}]` 
          : (selectedAprendente.tipoSessao || 'Intervenção');
 
-       sessoesGeradas.push({
-         id: Date.now().toString() + '-' + i,
-         aprendenteId: selectedAprendente.id,
-         nomeAprendente: selectedAprendente.nome,
-         tipoSessao: tipoDisplay,
-         dataRealizacao: dataNovaIso,
-         horaInicio: agendarHoraInicio,
-         horaFim: calcularHoraFim(agendarHoraInicio, duracao),
+       payloadsSupa.push({
+         aprendente_id: selectedAprendente.id,
+         nome_aprendente: selectedAprendente.nome,
+         tipo_sessao: tipoDisplay,
+         data_realizacao: dataNovaIso,
+         hora_inicio: agendarHoraInicio,
+         hora_fim: calcularHoraFim(agendarHoraInicio, duracao),
          status: 'agendado',
          valor: selectedAprendente.valorReferencia || 'R$ 0,00'
        });
     }
 
-    const novaLista = [...sessoesGlobais, ...sessoesGeradas];
-    setSessoesGlobais(novaLista);
-    localStorage.setItem('neuroflow_sessoes', JSON.stringify(novaLista));
+    const { data } = await supabase.from('sessoes').insert(payloadsSupa).select()
+    if (data) {
+       const novasSes = data.map(parseSesFromSupa)
+       setSessoesGlobais([...sessoesGlobais, ...novasSes])
+    }
 
     setCurrentScreen('dashboard');
-    setActiveTab('agenda'); // Vai direto pra agenda olhar!
+    setActiveTab('agenda');
   }
 
   if (currentScreen === 'novo-aprendente') {
@@ -497,6 +538,14 @@ function App() {
             <div className="form-container">
               
               <h3 style={{ fontSize: '1.1rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Dados Pessoais</h3>
+
+              {selectedAprendente.magicPin && (
+                <div style={{ background: 'var(--accent-stone-light)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', border: '1px dashed var(--accent-stone)' }}>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>CÓDIGO DE ACESSO DOS PAIS:</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-dark)', letterSpacing: '0.2rem', textAlign: 'center' }}>{selectedAprendente.magicPin}</p>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '0.85rem', textAlign: 'center', userSelect: 'all' }}>https://{window.location.host}/?pin={selectedAprendente.magicPin}</p>
+                </div>
+              )}
 
               <div className="form-group">
                 <label className="form-label">Nome Completo</label>
@@ -646,37 +695,44 @@ function App() {
   }
 
   if (currentScreen === 'encerrar-aprendente' && selectedAprendente) {
-    const handleEncerrar = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleEncerrar = async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const formData = new FormData(e.currentTarget);
       const motivo = formData.get('motivoEnc') as string;
       const dataIso = new Date().toISOString().split('T')[0];
 
-      // 1. Atualizar Aprendente
-      const atualizado = {
-        ...selectedAprendente,
-        status: 'inativo' as const,
-        motivoEncerramento: motivo,
-        dataEncerramento: dataIso
+      // 1. Atualizar DB
+      const updatePayload = {
+        status: 'inativo',
+        motivo_encerramento: motivo,
+        data_encerramento: dataIso
       };
 
-      const novaLista = aprendentes.map(ap => ap.id === atualizado.id ? atualizado : ap);
-      setAprendentes(novaLista);
-      localStorage.setItem('neuroflow_aprendentes', JSON.stringify(novaLista));
+      const { data } = await supabase.from('aprendentes').update(updatePayload).eq('id', selectedAprendente.id).select().single()
+      if (data) {
+         const atualizado = parseApFromSupa(data);
+         const novaLista = aprendentes.map(ap => ap.id === atualizado.id ? atualizado : ap);
+         setAprendentes(novaLista);
+      }
 
-      // 2. Apagar sessões futuras do aprendente que estiverem agendadas
+      // 2. Apagar sessões agendadas futuras
+      const hojeIso = new Date().toISOString().split('T')[0];
+      await supabase.from('sessoes')
+          .delete()
+          .eq('aprendente_id', selectedAprendente.id)
+          .eq('status', 'agendado')
+          .gte('data_realizacao', hojeIso)
+
+      // Atualizar cache de sessoesGlobais
       const novoSessoes = sessoesGlobais.filter(s => {
-        if (s.aprendenteId !== atualizado.id) return true;
+        if (s.aprendenteId !== selectedAprendente.id) return true;
         if (s.status !== 'agendado') return true;
-        
         const dataSessao = new Date(s.dataRealizacao + 'T23:59:59'); 
         const hoje = new Date();
         return dataSessao < hoje; // Mantém apenas se a sessão for antiga
       });
 
       setSessoesGlobais(novoSessoes);
-      localStorage.setItem('neuroflow_sessoes', JSON.stringify(novoSessoes));
-
       setCurrentScreen('dashboard');
       setSelectedAprendente(null);
     }
@@ -794,10 +850,12 @@ function App() {
     )
   }
 
-  const handleMarcarComoPago = (idSessao: string) => {
-    const novaLista = sessoesGlobais.map(s => s.id === idSessao ? { ...s, status: 'pago' as StatusType } : s);
-    setSessoesGlobais(novaLista);
-    localStorage.setItem('neuroflow_sessoes', JSON.stringify(novaLista));
+  const handleMarcarComoPago = async (idSessao: string) => {
+    const { data } = await supabase.from('sessoes').update({ status: 'pago' }).eq('id', idSessao).select().single()
+    if (data) {
+       const novaLista = sessoesGlobais.map(s => s.id === idSessao ? { ...s, status: 'pago' as StatusType } : s);
+       setSessoesGlobais(novaLista);
+    }
   }
 
   if (currentScreen === 'perfil-aprendente' && selectedAprendente) {
@@ -818,18 +876,24 @@ function App() {
      const totalSessoes = ehAvaliacao ? (selectedAprendente.qtdSessoesAvaliacao || sessoesDoAluno.length) : sessoesDoAluno.length;
      const concluidas = sessoesDoAluno.filter(s => s.status === 'pago').length;
 
+     const isParentMode = new URLSearchParams(window.location.search).get('pin') !== null;
+
      return (
        <div className="screen-overlay">
          <header className="screen-header" style={{ borderBottom: 'none' }}>
-           <button className="btn-icon" onClick={() => { setSelectedAprendente(null); setCurrentScreen('dashboard'); }} aria-label="Voltar">
-             <ArrowLeft size={28} />
-           </button>
+           {!isParentMode && (
+             <button className="btn-icon" onClick={() => { setSelectedAprendente(null); setCurrentScreen('dashboard'); }} aria-label="Voltar">
+               <ArrowLeft size={28} />
+             </button>
+           )}
            <div style={{flex: 1}}>
              <h2 className="screen-title" style={{ fontSize: '1.25rem' }}>Perfil</h2>
            </div>
-           <button className="btn-icon" style={{ marginRight: 0, color: 'var(--accent-rose)' }} onClick={() => setCurrentScreen('detalhe-aprendente')} aria-label="Configurações">
-             <Settings size={28} />
-           </button>
+           {!isParentMode && (
+             <button className="btn-icon" style={{ marginRight: 0, color: 'var(--accent-rose)' }} onClick={() => setCurrentScreen('detalhe-aprendente')} aria-label="Configurações">
+               <Settings size={28} />
+             </button>
+           )}
          </header>
 
          <div className="form-scroll-area">
@@ -900,7 +964,7 @@ function App() {
                          </span>
                        </div>
 
-                       {!isPago && (
+                       {!isPago && !isParentMode && (
                          <button 
                             onClick={() => handleMarcarComoPago(s.id)}
                             style={{ background: 'var(--accent-emerald-light)', color: 'var(--accent-emerald)', border: 'none', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}
@@ -955,7 +1019,7 @@ function App() {
   }
 
   if (currentScreen === 'agendamento-rapido-form' && selectedAprendente) {
-    const handleAgendamentoRapido = (e: React.FormEvent) => {
+    const handleAgendamentoRapido = async (e: React.FormEvent) => {
        e.preventDefault();
        if (!quickDate || !quickTime || quickDate.length < 5 || quickTime.length < 5) return;
        const [vdd, vmm] = quickDate.split('/');
@@ -968,20 +1032,22 @@ function App() {
        const isoDate = `${year}-${vmm.padStart(2,'0')}-${vdd.padStart(2,'0')}`;
        const duracao = parseInt(selectedAprendente.duracaoMinutos || '45', 10);
        const hrInicioFinal = quickTime.includes(':') ? quickTime : quickTime.replace(/(\d{2})(\d{2})/, '$1:$2');
-       const novaSessao: SessaoAgenda = {
-          id: 'qr-' + Date.now().toString(),
-          aprendenteId: selectedAprendente.id,
-          nomeAprendente: selectedAprendente.nome,
-          tipoSessao: selectedAprendente.tipoSessao || 'Sessão',
-          dataRealizacao: isoDate,
-          horaInicio: hrInicioFinal,
-          horaFim: calcularHoraFim(hrInicioFinal, duracao),
+       
+       const dbSessao = {
+          aprendente_id: selectedAprendente.id,
+          nome_aprendente: selectedAprendente.nome,
+          tipo_sessao: selectedAprendente.tipoSessao || 'Sessão',
+          data_realizacao: isoDate,
+          hora_inicio: hrInicioFinal,
+          hora_fim: calcularHoraFim(hrInicioFinal, duracao),
           status: 'agendado',
           valor: selectedAprendente.valorReferencia || 'R$ 0,00'
        };
-       const novaLista = [...sessoesGlobais, novaSessao];
-       setSessoesGlobais(novaLista);
-       localStorage.setItem('neuroflow_sessoes', JSON.stringify(novaLista));
+
+       const { data } = await supabase.from('sessoes').insert([dbSessao]).select().single()
+       if (data) {
+          setSessoesGlobais([...sessoesGlobais, parseSesFromSupa(data)]);
+       }
        setCurrentScreen('dashboard');
        setActiveTab('agenda');
        setQuickDate('');
