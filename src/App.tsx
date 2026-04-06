@@ -103,6 +103,28 @@ function App() {
     return `${d.getFullYear()}-${mm}-${dd}`;
   })
 
+  // PWA Install API
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    }
+  };
+
   // On Load: Carregar dados do Supabase
   useEffect(() => {
     const fetchDados = async () => {
@@ -1126,12 +1148,22 @@ function App() {
       
       {/* Header Greeting / Assistant Voice */}
       <header className="header-greeting" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-          <img src="/logo.png" alt="Logo" style={{ width: '48px', height: '48px', objectFit: 'contain' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-dark)', lineHeight: '1.2' }}>Espaço NeuroAprendiz</span>
-            <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>Elvira Portes</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <img src="/logo.png" alt="Logo" style={{ width: '48px', height: '48px', objectFit: 'contain' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-dark)', lineHeight: '1.2' }}>Espaço NeuroAprendiz</span>
+              <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>Elvira Portes</span>
+            </div>
           </div>
+          {deferredPrompt && (
+            <button 
+              onClick={handleInstallPWA}
+              style={{ padding: '0.4rem 0.8rem', background: 'var(--accent-rose)', color: 'white', border: 'none', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', boxShadow: 'var(--shadow-lux)' }}
+            >
+              Instalar App
+            </button>
+          )}
         </div>
 
         {activeTab === 'inicio' ? (
