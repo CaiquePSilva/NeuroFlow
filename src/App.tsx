@@ -1179,25 +1179,27 @@ function App() {
                 <p>Você não tem consultas agendadas para hoje.</p>
               </div>
             ) : (
-              todaySessions.map((session) => (
-                <article key={session.id} className="lux-card">
-                  <div className="card-header">
-                    <div>
-                      <h3 className="card-title">{session.nomeAprendente}</h3>
-                      <p className="card-subtitle" style={{marginTop: '4px'}}>
-                        <Clock size={20} />
-                        Hoje, {session.horaInicio}
-                      </p>
+              <div className="cards-grid">
+                {todaySessions.map((session) => (
+                  <article key={session.id} className="lux-card">
+                    <div className="card-header">
+                      <div>
+                        <h3 className="card-title">{session.nomeAprendente}</h3>
+                        <p className="card-subtitle" style={{marginTop: '4px'}}>
+                          <Clock size={20} />
+                          Hoje, {session.horaInicio}
+                        </p>
+                      </div>
+                      {getStatusBadge(session.status)}
                     </div>
-                    {getStatusBadge(session.status)}
-                  </div>
-                  
-                  <div className="card-footer">
-                    <span className="text-muted">{session.tipoSessao}</span>
-                    <span className="card-price">{session.valor}</span>
-                  </div>
-                </article>
-              ))
+                    
+                    <div className="card-footer">
+                      <span className="text-muted">{session.tipoSessao}</span>
+                      <span className="card-price">{session.valor}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
             )}
           </>
         )}
@@ -1218,26 +1220,28 @@ function App() {
                 <p>Você ainda não possui aprendentes ativos. Use o botão + abaixo para cadastrar.</p>
               </div>
             ) : (
-              aprendentes.filter(a => a.status !== 'inativo').map((ap) => (
-                <article key={ap.id} className="lux-card" onClick={() => openDetalhes(ap)} style={{ cursor: 'pointer' }}>
-                  <h3 className="card-title" style={{ marginBottom: '0.25rem' }}>{ap.nome}</h3>
-                  <p className="card-subtitle" style={{ marginTop: '0', marginBottom: '1rem' }}>
-                    {ap.dataOuIdade} {ap.dataOuIdade.length <= 2 ? 'anos' : ''}
-                  </p>
-                  
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span className="text-muted" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Users size={16} /> 
-                      {ap.responsavel1}
-                    </span>
-                    {ap.contato && (
-                      <a href={`https://wa.me/55${ap.contato.replace(/\D/g, '')}`} target="_blank" className="badge badge-pago" style={{ textDecoration: 'none' }}>
-                        WhatsApp
-                      </a>
-                    )}
-                  </div>
-                </article>
-              ))
+              <div className="cards-grid">
+                {aprendentes.filter(a => a.status !== 'inativo').map((ap) => (
+                  <article key={ap.id} className="lux-card" onClick={() => openDetalhes(ap)} style={{ cursor: 'pointer' }}>
+                    <h3 className="card-title" style={{ marginBottom: '0.25rem' }}>{ap.nome}</h3>
+                    <p className="card-subtitle" style={{ marginTop: '0', marginBottom: '1rem' }}>
+                      {ap.dataOuIdade} {ap.dataOuIdade.length <= 2 ? 'anos' : ''}
+                    </p>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span className="text-muted" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Users size={16} /> 
+                        {ap.responsavel1}
+                      </span>
+                      {ap.contato && (
+                        <a href={`https://wa.me/55${ap.contato.replace(/\D/g, '')}`} target="_blank" className="badge badge-pago" style={{ textDecoration: 'none' }}>
+                          WhatsApp
+                        </a>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
             )}
           </>
         )}
@@ -1305,23 +1309,27 @@ function App() {
                 )
               }
 
-              return sessoesDoDia.map((sessao) => (
-                <article key={sessao.id} className="lux-card" style={{ display: 'flex', gap: '1rem' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', borderRight: '2px solid var(--border-light)', paddingRight: '1rem' }}>
-                     <span style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--text-dark)' }}>{sessao.horaInicio}</span>
-                     <span style={{ fontSize: '1rem', color: 'var(--text-muted)', marginTop: '4px' }}>{sessao.horaFim}</span>
-                  </div>
-                  
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <h3 className="card-title" style={{ fontSize: '1.3rem', marginBottom: '0.25rem' }}>{sessao.nomeAprendente}</h3>
-                    <span className="text-muted" style={{ fontSize: '1.1rem' }}>{sessao.tipoSessao}</span>
-                  </div>
+              return (
+                <div className="cards-grid">
+                  {sessoesDoDia.map((sessao) => (
+                    <article key={sessao.id} className="lux-card" style={{ display: 'flex', gap: '1rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', borderRight: '2px solid var(--border-light)', paddingRight: '1rem' }}>
+                         <span style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--text-dark)' }}>{sessao.horaInicio}</span>
+                         <span style={{ fontSize: '1rem', color: 'var(--text-muted)', marginTop: '4px' }}>{sessao.horaFim}</span>
+                      </div>
+                      
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <h3 className="card-title" style={{ fontSize: '1.3rem', marginBottom: '0.25rem' }}>{sessao.nomeAprendente}</h3>
+                        <span className="text-muted" style={{ fontSize: '1.1rem' }}>{sessao.tipoSessao}</span>
+                      </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                     {getStatusBadge(sessao.status)}
-                  </div>
-                </article>
-              ))
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                         {getStatusBadge(sessao.status)}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              );
             })()}
           </section>
         )}

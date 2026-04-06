@@ -382,3 +382,78 @@ p {
   font-size: 1.15rem;
   color: var(--text-muted);
 }
+
+/* 
+===================================
+DESKTOP & TABLET OPTIMIZATIONS
+===================================
+*/
+
+@media (min-width: 768px) {
+  body {
+    padding-bottom: 0;
+    background-color: #f3f4f6; /* Fundo levemente mais cinza para o app flutuar suavemente */
+  }
+
+  /* Expande o container principal e empurra para a direita por causa do menu lateral */
+  .mobile-container {
+    max-width: 1200px; /* Layout bem amplo e espaçoso para PC */
+    margin: 0 0 0 250px; /* Margem esquerda igual a largura da sidebar */
+    padding: 2.5rem 3rem;
+  }
+
+  /* Transforma o Bottom-Nav de celular numa Sidebar Vertical elegante */
+  .bottom-nav {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 250px;
+    height: 100vh;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-top: 3rem;
+    padding-bottom: 2rem;
+    border-top: none;
+    border-right: 1px solid var(--border-light);
+    background: var(--card-bg);
+  }
+
+  .nav-item {
+    flex: unset;
+    height: auto;
+    width: 100%;
+    padding: 1.25rem 2rem;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 1rem;
+    font-size: 1.1rem;
+  }
+
+  .nav-item span {
+    font-size: 1.2rem;
+  }
+
+  .nav-item.active {
+    background: var(--accent-rose-light);
+    border-right: 4px solid var(--accent-rose);
+  }
+
+  /* Sistema Inteligente de Grid para Listas (Cards) */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  .summary-grid {
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+
+  /* FAB posicionada melhor */
+  .fab-menu-container {
+    bottom: 2rem;
+    right: 2.5rem;
+  }
+}
