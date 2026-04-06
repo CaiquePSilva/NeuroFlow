@@ -210,52 +210,24 @@ function App() {
   }
 
   const handleMoneyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let raw = e.target.value.replace(/[^\d,]/g, ''); // mantém apenas números e vírgula
-    if (raw === '') { setConfValor(''); return; }
+    const value = e.target.value.replace(/\D/g, '');
+    if (value === '') { 
+      setConfValor(''); 
+      return; 
+    }
+    const numericValue = parseInt(value, 10);
+    if (isNaN(numericValue)) return;
     
-    // Garante que só tenha uma vírgula
-    const parts = raw.split(',');
-    if (parts.length > 2) {
-      raw = parts[0] + ',' + parts.slice(1).join('');
-    }
-
-    let integerPart = parts[0];
-    let decimalPart = parts.length > 1 ? parts[1] : '';
-
-    if (integerPart) {
-      integerPart = parseInt(integerPart, 10).toString(); // remove zeros à esquerda inuteis
-      integerPart = integerPart.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
-    } else {
-      integerPart = '0';
-    }
-
-    if (decimalPart.length > 2) {
-      decimalPart = decimalPart.slice(0, 2);
-    }
-
-    let formatted = '';
-    if (raw.includes(',')) {
-      formatted = `R$ ${integerPart},${decimalPart}`;
-    } else {
-      formatted = `R$ ${integerPart}`;
-    }
+    const formatted = new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(numericValue / 100);
     
     setConfValor(formatted);
   }
 
   const handleMoneyBlur = () => {
-    if (!confValor || confValor === 'R$ ' || confValor === 'R$ 0') return;
-    
-    if (!confValor.includes(',')) {
-      setConfValor(confValor + ',00');
-    } else {
-      const parts = confValor.split(',');
-      if (parts[1].length === 0) {
-        setConfValor(parts[0] + ',00');
-      } else if (parts[1].length === 1) {
-        setConfValor(confValor + '0');
-      }
-    }
+    // Formatação agora é sempre exata via onChange, não precisamos mais corrigir no blur
   }
 
   const handleQuickDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
