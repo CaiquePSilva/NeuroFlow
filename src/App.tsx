@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Home, Calendar, Users, Plus, Clock, UserPlus, ArrowLeft, Settings, CheckCircle, Trash2, Edit3, X, Play, Ban, RefreshCw } from 'lucide-react'
+import { Home, Calendar, Users, Plus, Clock, UserPlus, ArrowLeft, Settings, CheckCircle, Trash2, Play, Ban, RefreshCw } from 'lucide-react'
 import { supabase } from './lib/supabase'
 import './App.css'
 import './form-styles.css'
@@ -422,6 +422,105 @@ function App() {
 
     setCurrentScreen('dashboard');
     setActiveTab('agenda');
+  }
+
+  const handleMarcarComoPago = async (idSessao: string) => {
+    const { data } = await supabase.from('sessoes').update({ status: 'pago' }).eq('id', idSessao).select().single()
+    if (data) {
+       const novaLista = sessoesGlobais.map(s => s.id === idSessao ? { ...s, status: 'pago' as StatusType } : s);
+       setSessoesGlobais(novaLista);
+    }
+  }
+
+  // NEW: Iniciar Atendimento
+  const handleIniciarAtendimento = async (idSessao: string) => {
+    const { data } = await supabase.from('sessoes').update({ status: 'andamento' }).eq('id', idSessao).select().single()
+    if (data) {
+       setSessoesGlobais(sessoesGlobais.map(s => s.id === idSessao ? { ...s, status: 'andamento' as StatusType } : s));
+    }
+  }
+
+  // NEW: Cancelar Sessão
+  const handleCancelarSessao = async (idSessao: string) => {
+    const { data } = await supabase.from('sessoes').update({ status: 'cancelado' }).eq('id', idSessao).select().single()
+    if (data) {
+       setSessoesGlobais(sessoesGlobais.map(s => s.id === idSessao ? { ...s, status: 'cancelado' as StatusType } : s));
+       setShowSessaoModal(false);
+       setSelectedSessao(null);
+    }
+  }
+
+  // NEW: Remarcar Sessão (marca antiga como 'remarcado' e cria nova)
+  const handleRemarcarSessao = async () => {
+    if (!selectedSessao || !remarcarData || !remarcarHora) return;
+    
+    // 1. Marca sessão antiga como 'remarcado'
+    await supabase.from('sessoes').update({ status: 'remarcado' }).eq('id', selectedSessao.id);
+    
+    // 2. Busca duração do aprendente
+    const ap = aprendentes.find(a => a.id === selectedSessao.aprendenteId);
+    const duracao = parseInt(ap?.duracaoMinutos || '45', 10);
+    
+    // 3. Cria nova sessão
+    const novaSessao = {
+      aprendente_id: selectedSessao.aprendenteId,
+      nome_aprendente: selectedSessao.nomeAprendente,
+      tipo_sessao: selectedSessao.tipoSessao,
+      data_realizacao: remarcarData,
+      hora_inicio: remarcarHora,
+      hora_fim: calcularHoraFim(remarcarHora, duracao),
+      status: 'agendado',
+      valor: selectedSessao.valor
+    };
+    
+    const { data: novaSesData } = await supabase.from('sessoes').insert([novaSessao]).select().single();
+    
+    // 4. Atualiza lista local
+    let novaLista = sessoesGlobais.map(s => s.id === selectedSessao.id ? { ...s, status: 'remarcado' as StatusType } : s);
+    if (novaSesData) {
+      novaLista = [...novaLista, parseSesFromSupa(novaSesData)];
+    }
+    setSessoesGlobais(novaLista);
+    setShowSessaoModal(false);
+    setSelectedSessao(null);
+    setRemarcarData('');
+    setRemarcarHora('');
+  }
+
+  // NEW: Excluir Aprendente Permanentemente
+  const handleExcluirAprendente = async () => {
+    if (!selectedAprendente) return;
+    await supabase.from('aprendentes').delete().eq('id', selectedAprendente.id);
+    setAprendentes(aprendentes.filter(a => a.id !== selectedAprendente.id));
+    setSessoesGlobais(sessoesGlobais.filter(s => s.aprendenteId !== selectedAprendente.id));
+    setShowDeleteConfirm(false);
+    setSelectedAprendente(null);
+    setCurrentScreen('dashboard');
+  }
+
+  // NEW: Abrir modal de detalhe de sessão
+  const handleOpenSessaoModal = (sessao: SessaoAgenda) => {
+    setSelectedSessao(sessao);
+    setRemarcarData('');
+    setRemarcarHora('');
+    setShowSessaoModal(true);
+  }
+
+  // NEW: Lógica de pagamento inteligente
+  const getPagamentoInfo = (ap: Aprendente) => {
+    if (!ap.formaPagamento) return { showPayBtn: true, label: 'Marcar como Pago' };
+    if (ap.formaPagamento === 'Por Sessão') return { showPayBtn: true, label: 'Marcar como Pago' };
+    if (ap.formaPagamento === 'Pacote Mensal') {
+      const sessoesDoMes = sessoesGlobais.filter(s => {
+        if (s.aprendenteId !== ap.id) return false;
+        const mesAtual = new Date().getMonth();
+        const mesSessao = new Date(s.dataRealizacao + 'T12:00:00').getMonth();
+        return mesAtual === mesSessao && s.status === 'pago';
+      });
+      if (sessoesDoMes.length >= 4) return { showPayBtn: false, label: 'Pacote Mensal Pago ✓' };
+      return { showPayBtn: true, label: `Pago Antecipadamente (${sessoesDoMes.length}/4)` };
+    }
+    return { showPayBtn: true, label: 'Marcar como Pago' };
   }
 
   if (currentScreen === 'novo-aprendente') {
@@ -880,104 +979,7 @@ function App() {
     )
   }
 
-  const handleMarcarComoPago = async (idSessao: string) => {
-    const { data } = await supabase.from('sessoes').update({ status: 'pago' }).eq('id', idSessao).select().single()
-    if (data) {
-       const novaLista = sessoesGlobais.map(s => s.id === idSessao ? { ...s, status: 'pago' as StatusType } : s);
-       setSessoesGlobais(novaLista);
-    }
-  }
 
-  // NEW: Iniciar Atendimento
-  const handleIniciarAtendimento = async (idSessao: string) => {
-    const { data } = await supabase.from('sessoes').update({ status: 'andamento' }).eq('id', idSessao).select().single()
-    if (data) {
-       setSessoesGlobais(sessoesGlobais.map(s => s.id === idSessao ? { ...s, status: 'andamento' as StatusType } : s));
-    }
-  }
-
-  // NEW: Cancelar Sessão
-  const handleCancelarSessao = async (idSessao: string) => {
-    const { data } = await supabase.from('sessoes').update({ status: 'cancelado' }).eq('id', idSessao).select().single()
-    if (data) {
-       setSessoesGlobais(sessoesGlobais.map(s => s.id === idSessao ? { ...s, status: 'cancelado' as StatusType } : s));
-       setShowSessaoModal(false);
-       setSelectedSessao(null);
-    }
-  }
-
-  // NEW: Remarcar Sessão (marca antiga como 'remarcado' e cria nova)
-  const handleRemarcarSessao = async () => {
-    if (!selectedSessao || !remarcarData || !remarcarHora) return;
-    
-    // 1. Marca sessão antiga como 'remarcado'
-    await supabase.from('sessoes').update({ status: 'remarcado' }).eq('id', selectedSessao.id);
-    
-    // 2. Busca duração do aprendente
-    const ap = aprendentes.find(a => a.id === selectedSessao.aprendenteId);
-    const duracao = parseInt(ap?.duracaoMinutos || '45', 10);
-    
-    // 3. Cria nova sessão
-    const novaSessao = {
-      aprendente_id: selectedSessao.aprendenteId,
-      nome_aprendente: selectedSessao.nomeAprendente,
-      tipo_sessao: selectedSessao.tipoSessao,
-      data_realizacao: remarcarData,
-      hora_inicio: remarcarHora,
-      hora_fim: calcularHoraFim(remarcarHora, duracao),
-      status: 'agendado',
-      valor: selectedSessao.valor
-    };
-    
-    const { data: novaSesData } = await supabase.from('sessoes').insert([novaSessao]).select().single();
-    
-    // 4. Atualiza lista local
-    let novaLista = sessoesGlobais.map(s => s.id === selectedSessao.id ? { ...s, status: 'remarcado' as StatusType } : s);
-    if (novaSesData) {
-      novaLista = [...novaLista, parseSesFromSupa(novaSesData)];
-    }
-    setSessoesGlobais(novaLista);
-    setShowSessaoModal(false);
-    setSelectedSessao(null);
-    setRemarcarData('');
-    setRemarcarHora('');
-  }
-
-  // NEW: Excluir Aprendente Permanentemente
-  const handleExcluirAprendente = async () => {
-    if (!selectedAprendente) return;
-    await supabase.from('aprendentes').delete().eq('id', selectedAprendente.id);
-    setAprendentes(aprendentes.filter(a => a.id !== selectedAprendente.id));
-    setSessoesGlobais(sessoesGlobais.filter(s => s.aprendenteId !== selectedAprendente.id));
-    setShowDeleteConfirm(false);
-    setSelectedAprendente(null);
-    setCurrentScreen('dashboard');
-  }
-
-  // NEW: Abrir modal de detalhe de sessão
-  const handleOpenSessaoModal = (sessao: SessaoAgenda) => {
-    setSelectedSessao(sessao);
-    setRemarcarData('');
-    setRemarcarHora('');
-    setShowSessaoModal(true);
-  }
-
-  // NEW: Lógica de pagamento inteligente
-  const getPagamentoInfo = (ap: Aprendente) => {
-    if (!ap.formaPagamento) return { showPayBtn: true, label: 'Marcar como Pago' };
-    if (ap.formaPagamento === 'Por Sessão') return { showPayBtn: true, label: 'Marcar como Pago' };
-    if (ap.formaPagamento === 'Pacote Mensal') {
-      const sessoesDoMes = sessoesGlobais.filter(s => {
-        if (s.aprendenteId !== ap.id) return false;
-        const mesAtual = new Date().getMonth();
-        const mesSessao = new Date(s.dataRealizacao + 'T12:00:00').getMonth();
-        return mesAtual === mesSessao && s.status === 'pago';
-      });
-      if (sessoesDoMes.length >= 4) return { showPayBtn: false, label: 'Pacote Mensal Pago ✓' };
-      return { showPayBtn: true, label: `Pago Antecipadamente (${sessoesDoMes.length}/4)` };
-    }
-    return { showPayBtn: true, label: 'Marcar como Pago' };
-  }
 
   if (currentScreen === 'perfil-aprendente' && selectedAprendente) {
      const sessoesDoAluno = sessoesGlobais
