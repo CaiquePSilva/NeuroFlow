@@ -1295,7 +1295,7 @@ function App() {
           </>
         ) : (
           <h1 style={{ color: 'var(--text-dark)', fontSize: '1.5rem', lineHeight: '1.4', fontWeight: 500 }}>
-            {activeTab === 'clientes' && "Aqui estão todos os seus aprendentes, Elvira. Você acompanhou alguma novidade recente?"}
+            {activeTab === 'aprendentes' && "Aqui estão todos os seus aprendentes, Elvira. Você acompanhou alguma novidade recente?"}
             {activeTab === 'agenda' && "Vamos verificar seus próximos compromissos para garantir que nada passe despercebido."}
           </h1>
         )}
@@ -1350,7 +1350,7 @@ function App() {
           </>
         )}
 
-        {activeTab === 'clientes' && (
+        {activeTab === 'aprendentes' && (
           <>
             <h2 className="section-title" style={{ display: 'flex', justifyContent: 'space-between' }}>
               Meus Aprendentes

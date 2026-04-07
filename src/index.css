@@ -481,8 +481,9 @@ p {
   }
 }
 
+/* Simplificando a animação para garantir visibilidade */
 .cards-grid > * {
-  animation: cardFadeIn 0.4s ease-out both;
+  animation: cardFadeIn 0.5s ease-out;
 }
 
 .cards-grid > *:nth-child(1) { animation-delay: 0ms; }
