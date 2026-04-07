@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Home, Calendar, Users, Plus, Clock, UserPlus, ArrowLeft, Settings, CheckCircle } from 'lucide-react'
+import { Home, Calendar, Users, Plus, Clock, UserPlus, ArrowLeft, Settings, CheckCircle, Trash2, Edit3, X, Play, Ban, RefreshCw } from 'lucide-react'
 import { supabase } from './lib/supabase'
 import './App.css'
 import './form-styles.css'
 
-type StatusType = 'agendado' | 'andamento' | 'pago'
+type StatusType = 'agendado' | 'andamento' | 'pago' | 'cancelado' | 'remarcado'
 
 
 
@@ -95,6 +95,15 @@ function App() {
   const [agendarData, setAgendarData] = useState('')
   const [agendarHoraInicio, setAgendarHoraInicio] = useState('')
 
+  // NEW: Session Detail Modal
+  const [selectedSessao, setSelectedSessao] = useState<SessaoAgenda | null>(null)
+  const [remarcarData, setRemarcarData] = useState('')
+  const [remarcarHora, setRemarcarHora] = useState('')
+  const [showSessaoModal, setShowSessaoModal] = useState(false)
+
+  // NEW: Delete Confirmation
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
   // Helper (Filtro da Agenda Diária)
   const [selectedAgendaDate, setSelectedAgendaDate] = useState(() => {
     const d = new Date();
@@ -158,7 +167,7 @@ function App() {
   const todayStr = `${dToday.getFullYear()}-${mmToday}-${ddToday}`;
 
   const todaySessions = sessoesGlobais
-    .filter(s => s.dataRealizacao === todayStr)
+    .filter(s => s.dataRealizacao === todayStr && s.status !== 'cancelado' && s.status !== 'remarcado')
     .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
 
   const previsaoDia = todaySessions.reduce((acc, sessao) => {
@@ -168,9 +177,11 @@ function App() {
 
   const getStatusBadge = (status: StatusType) => {
     switch(status) {
-      case 'agendado': return <span className="badge badge-agendado">Agendado</span>
-      case 'andamento': return <span className="badge badge-andamento">Em Andamento</span>
-      case 'pago': return <span className="badge badge-pago">Pago</span>
+      case 'agendado': return <span className="badge badge-agendado"><Clock size={12} /> Agendado</span>
+      case 'andamento': return <span className="badge badge-andamento"><Play size={12} /> Em Andamento</span>
+      case 'pago': return <span className="badge badge-pago"><CheckCircle size={12} /> Pago</span>
+      case 'cancelado': return <span className="badge badge-cancelado"><Ban size={12} /> Cancelada</span>
+      case 'remarcado': return <span className="badge badge-remarcado"><RefreshCw size={12} /> Remarcada</span>
       default: return null
     }
   }
@@ -682,8 +693,33 @@ function App() {
             >
               Finalizar Acompanhamento
             </button>
+            <button 
+              type="button" 
+              className="btn-danger-outline"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              <Trash2 size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+              Excluir Permanentemente
+            </button>
           </div>
         </form>
+
+        {/* Modal de Confirmação de Exclusão */}
+        {showDeleteConfirm && (
+          <div className="confirm-modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+            <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+              <h3>⚠️ Excluir Aprendente</h3>
+              <p>
+                Tem certeza que deseja excluir <strong>{selectedAprendente.nome}</strong> permanentemente? 
+                Todas as sessões vinculadas serão apagadas. <strong>Esta ação não pode ser desfeita.</strong>
+              </p>
+              <div className="confirm-modal-actions">
+                <button className="btn-cancel-modal" onClick={() => setShowDeleteConfirm(false)}>Cancelar</button>
+                <button className="btn-confirm-delete" onClick={handleExcluirAprendente}>Sim, Excluir</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -852,6 +888,97 @@ function App() {
     }
   }
 
+  // NEW: Iniciar Atendimento
+  const handleIniciarAtendimento = async (idSessao: string) => {
+    const { data } = await supabase.from('sessoes').update({ status: 'andamento' }).eq('id', idSessao).select().single()
+    if (data) {
+       setSessoesGlobais(sessoesGlobais.map(s => s.id === idSessao ? { ...s, status: 'andamento' as StatusType } : s));
+    }
+  }
+
+  // NEW: Cancelar Sessão
+  const handleCancelarSessao = async (idSessao: string) => {
+    const { data } = await supabase.from('sessoes').update({ status: 'cancelado' }).eq('id', idSessao).select().single()
+    if (data) {
+       setSessoesGlobais(sessoesGlobais.map(s => s.id === idSessao ? { ...s, status: 'cancelado' as StatusType } : s));
+       setShowSessaoModal(false);
+       setSelectedSessao(null);
+    }
+  }
+
+  // NEW: Remarcar Sessão (marca antiga como 'remarcado' e cria nova)
+  const handleRemarcarSessao = async () => {
+    if (!selectedSessao || !remarcarData || !remarcarHora) return;
+    
+    // 1. Marca sessão antiga como 'remarcado'
+    await supabase.from('sessoes').update({ status: 'remarcado' }).eq('id', selectedSessao.id);
+    
+    // 2. Busca duração do aprendente
+    const ap = aprendentes.find(a => a.id === selectedSessao.aprendenteId);
+    const duracao = parseInt(ap?.duracaoMinutos || '45', 10);
+    
+    // 3. Cria nova sessão
+    const novaSessao = {
+      aprendente_id: selectedSessao.aprendenteId,
+      nome_aprendente: selectedSessao.nomeAprendente,
+      tipo_sessao: selectedSessao.tipoSessao,
+      data_realizacao: remarcarData,
+      hora_inicio: remarcarHora,
+      hora_fim: calcularHoraFim(remarcarHora, duracao),
+      status: 'agendado',
+      valor: selectedSessao.valor
+    };
+    
+    const { data: novaSesData } = await supabase.from('sessoes').insert([novaSessao]).select().single();
+    
+    // 4. Atualiza lista local
+    let novaLista = sessoesGlobais.map(s => s.id === selectedSessao.id ? { ...s, status: 'remarcado' as StatusType } : s);
+    if (novaSesData) {
+      novaLista = [...novaLista, parseSesFromSupa(novaSesData)];
+    }
+    setSessoesGlobais(novaLista);
+    setShowSessaoModal(false);
+    setSelectedSessao(null);
+    setRemarcarData('');
+    setRemarcarHora('');
+  }
+
+  // NEW: Excluir Aprendente Permanentemente
+  const handleExcluirAprendente = async () => {
+    if (!selectedAprendente) return;
+    await supabase.from('aprendentes').delete().eq('id', selectedAprendente.id);
+    setAprendentes(aprendentes.filter(a => a.id !== selectedAprendente.id));
+    setSessoesGlobais(sessoesGlobais.filter(s => s.aprendenteId !== selectedAprendente.id));
+    setShowDeleteConfirm(false);
+    setSelectedAprendente(null);
+    setCurrentScreen('dashboard');
+  }
+
+  // NEW: Abrir modal de detalhe de sessão
+  const handleOpenSessaoModal = (sessao: SessaoAgenda) => {
+    setSelectedSessao(sessao);
+    setRemarcarData('');
+    setRemarcarHora('');
+    setShowSessaoModal(true);
+  }
+
+  // NEW: Lógica de pagamento inteligente
+  const getPagamentoInfo = (ap: Aprendente) => {
+    if (!ap.formaPagamento) return { showPayBtn: true, label: 'Marcar como Pago' };
+    if (ap.formaPagamento === 'Por Sessão') return { showPayBtn: true, label: 'Marcar como Pago' };
+    if (ap.formaPagamento === 'Pacote Mensal') {
+      const sessoesDoMes = sessoesGlobais.filter(s => {
+        if (s.aprendenteId !== ap.id) return false;
+        const mesAtual = new Date().getMonth();
+        const mesSessao = new Date(s.dataRealizacao + 'T12:00:00').getMonth();
+        return mesAtual === mesSessao && s.status === 'pago';
+      });
+      if (sessoesDoMes.length >= 4) return { showPayBtn: false, label: 'Pacote Mensal Pago ✓' };
+      return { showPayBtn: true, label: `Pago Antecipadamente (${sessoesDoMes.length}/4)` };
+    }
+    return { showPayBtn: true, label: 'Marcar como Pago' };
+  }
+
   if (currentScreen === 'perfil-aprendente' && selectedAprendente) {
      const sessoesDoAluno = sessoesGlobais
         .filter(s => s.aprendenteId === selectedAprendente.id)
@@ -895,86 +1022,103 @@ function App() {
              
              {/* Cabeçalho do Perfil */}
              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
-                <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--accent-rose-light)', color: 'var(--accent-rose)', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '2rem', fontWeight: 600, marginBottom: '1rem' }}>
+                <div style={{ 
+                  width: '80px', height: '80px', borderRadius: '50%', 
+                  background: 'var(--gradient-rose)', color: 'white', 
+                  display: 'flex', justifyContent: 'center', alignItems: 'center', 
+                  fontSize: '2rem', fontWeight: 700, marginBottom: '1rem',
+                  boxShadow: 'var(--shadow-fab)'
+                }}>
                   {selectedAprendente.nome.charAt(0)}
                 </div>
-                <h2 style={{ fontSize: '1.6rem', color: 'var(--text-dark)', marginBottom: '4px', textAlign: 'center' }}>{selectedAprendente.nome}</h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>{selectedAprendente.dataOuIdade} {selectedAprendente.dataOuIdade.length <= 2 ? 'anos' : ''} • {selectedAprendente.tipoSessao || 'Sessão Padrão'}</p>
+                <h2 style={{ fontSize: '1.5rem', color: 'var(--text-dark)', marginBottom: '4px', textAlign: 'center', fontWeight: 700 }}>{selectedAprendente.nome}</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{selectedAprendente.dataOuIdade} {selectedAprendente.dataOuIdade.length <= 2 ? 'anos' : ''} • {selectedAprendente.tipoSessao || 'Sessão Padrão'}</p>
              </div>
 
              {/* Resumo Financeiro */}
              <section className="summary-grid" style={{ marginBottom: '1.5rem' }}>
                 <div className="summary-card">
-                  <div className="summary-value" style={{ fontSize: '1.5rem', color: 'var(--text-dark)' }}>
+                  <div className="summary-value" style={{ fontSize: '1.35rem', color: 'var(--text-dark)' }}>
                     {totalPendente.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </div>
-                  <div className="summary-label" style={{ fontSize: '1rem' }}>Pendente (Aberto)</div>
+                  <div className="summary-label">Total em Aberto</div>
                 </div>
-                <div className="summary-card" style={{ background: 'var(--accent-emerald-light)', borderColor: 'transparent' }}>
-                  <div className="summary-value" style={{ fontSize: '1.5rem', color: 'var(--accent-emerald)' }}>
+                <div className="summary-card" style={{ borderLeft: '3px solid var(--accent-emerald)' }}>
+                  <div className="summary-value" style={{ fontSize: '1.35rem', color: 'var(--accent-emerald)' }}>
                     {totalPago.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </div>
-                  <div className="summary-label" style={{ color: 'var(--accent-emerald)', opacity: 0.8, fontSize: '1rem' }}>Total Pago</div>
+                  <div className="summary-label">Total Recebido</div>
                 </div>
              </section>
 
              {/* Progresso Tracker */}
-             {ehAvaliacao && selectedAprendente.qtdSessoesAvaliacao && (
+             {ehAvaliacao && (
                <div style={{ background: 'var(--card-bg)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', marginBottom: '1.5rem', boxShadow: 'var(--shadow-lux)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                     <span style={{ fontWeight: 600, color: 'var(--text-dark)' }}>Progresso da Avaliação</span>
-                     <span style={{ color: 'var(--text-muted)' }}>{concluidas} de {totalSessoes} concluídas</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                     <span style={{ fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.9rem' }}>Progresso da Avaliação</span>
+                     <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{concluidas} de {totalSessoes} concluídas</span>
                   </div>
-                  <div style={{ width: '100%', height: '8px', background: 'var(--border-light)', borderRadius: '4px', overflow: 'hidden' }}>
-                     <div style={{ width: `${Math.min(100, (concluidas / Number(totalSessoes)) * 100)}%`, height: '100%', background: 'var(--accent-rose)', transition: 'width 0.3s' }}></div>
+                  <div style={{ width: '100%', height: '8px', background: 'var(--bg-warm)', borderRadius: '4px', overflow: 'hidden' }}>
+                     <div style={{ width: `${Math.min(100, (concluidas / Number(totalSessoes)) * 100)}%`, height: '100%', background: 'var(--accent-rose)', borderRadius: '4px', transition: 'width 0.5s ease' }}></div>
                   </div>
                </div>
              )}
 
-             {/* Trilha Histórica (Acoes Financeiras) */}
-             <h3 style={{ fontSize: '1.1rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem', marginBottom: '1rem', marginTop: '2rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+             {/* Trilha Histórica */}
+             <h3 className="section-title" style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+               <Clock size={16} />
                Trilha de Sessões
              </h3>
 
              {sessoesDoAluno.length === 0 ? (
-               <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic', padding: '1rem' }}>Nenhuma sessão lançada.</p>
+               <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 1rem', background: 'var(--bg-warm)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-light)' }}>
+                 <p style={{ fontSize: '0.9rem' }}>Nenhuma sessão lançada.</p>
+               </div>
              ) : (
-               historico.map(s => {
+               <div className="cards-grid">
+               {historico.map(s => {
                   let dParts = s.dataRealizacao.split('-');
                   let displayDate = dParts.length === 3 ? `${dParts[2]}/${dParts[1]}` : s.dataRealizacao;
                   let isPago = s.status === 'pago';
+                  const { label, showPayBtn } = getPagamentoInfo(selectedAprendente);
                   
                   return (
-                    <article key={s.id} style={{ display: 'flex', alignItems: 'center', padding: '1rem', background: 'var(--card-bg)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', marginBottom: '0.5rem', boxShadow: 'var(--shadow-lux)' }}>
-                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '50px', paddingRight: '0.8rem', borderRight: '1px solid var(--border-light)' }}>
-                         <span style={{ fontWeight: 600, color: 'var(--text-dark)', fontSize: '1.1rem' }}>{displayDate}</span>
-                         <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{s.horaInicio}</span>
+                    <article 
+                      key={s.id} 
+                      className={`lux-card ${s.status === 'cancelado' ? 'sessao-cancelada' : ''}`}
+                      onClick={() => handleOpenSessaoModal(s)}
+                      style={{ display: 'flex', alignItems: 'center', padding: '1rem', cursor: 'pointer' }}
+                    >
+                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '50px', paddingRight: '0.8rem', borderRight: '1.5px solid var(--border-light)' }}>
+                         <span style={{ fontWeight: 600, color: 'var(--text-dark)', fontSize: '1rem' }}>{displayDate}</span>
+                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>{s.horaInicio}</span>
                        </div>
                        
-                       <div style={{ flex: 1, paddingLeft: '0.8rem', display: 'flex', flexDirection: 'column' }}>
-                         <span style={{ fontWeight: 500, color: 'var(--text-dark)' }}>{s.tipoSessao}</span>
-                         <span style={{ color: isPago ? 'var(--accent-emerald)' : 'var(--accent-rose)', fontSize: '0.9rem', fontWeight: 500 }}>
-                           {isPago ? 'Recebido: ' : 'Pendente: '} {s.valor}
-                         </span>
+                       <div style={{ flex: 1, paddingLeft: '1rem', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                         <span style={{ fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>{s.tipoSessao}</span>
+                         <span className="text-muted" style={{ fontSize: '0.85rem' }}>{s.valor} • {getStatusBadge(s.status)}</span>
                        </div>
 
-                       {!isPago && !isParentMode && (
+                       {!isPago && !isParentMode && showPayBtn && (
                          <button 
-                            onClick={() => handleMarcarComoPago(s.id)}
-                            style={{ background: 'var(--accent-emerald-light)', color: 'var(--accent-emerald)', border: 'none', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}
-                            aria-label="Marcar como Pago"
+                            onClick={(e) => { e.stopPropagation(); handleMarcarComoPago(s.id); }}
+                            style={{ background: 'var(--accent-emerald-light)', color: 'var(--accent-emerald)', border: 'none', width: '38px', height: '38px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', transition: 'transform 0.2s' }}
+                            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.9)'}
+                            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            aria-label={label}
                          >
                             <CheckCircle size={20} />
                          </button>
                        )}
                        {isPago && (
-                         <div style={{ color: 'var(--accent-emerald)', width: '40px', display: 'flex', justifyContent: 'center', opacity: 0.6 }}>
-                            <CheckCircle size={20} />
+                         <div style={{ color: 'var(--accent-emerald)', width: '38px', display: 'flex', justifyContent: 'center', opacity: 0.7 }}>
+                            <CheckCircle size={22} />
                          </div>
                        )}
                     </article>
                   )
-               })
+               })}
+               </div>
              )}
 
            </div>
@@ -1181,12 +1325,12 @@ function App() {
             ) : (
               <div className="cards-grid">
                 {todaySessions.map((session) => (
-                  <article key={session.id} className="lux-card">
+                  <article key={session.id} className="lux-card" onClick={() => handleOpenSessaoModal(session)} style={{ cursor: 'pointer' }}>
                     <div className="card-header">
                       <div>
                         <h3 className="card-title">{session.nomeAprendente}</h3>
                         <p className="card-subtitle" style={{marginTop: '4px'}}>
-                          <Clock size={20} />
+                          <Clock size={16} />
                           Hoje, {session.horaInicio}
                         </p>
                       </div>
@@ -1312,15 +1456,20 @@ function App() {
               return (
                 <div className="cards-grid">
                   {sessoesDoDia.map((sessao) => (
-                    <article key={sessao.id} className="lux-card" style={{ display: 'flex', gap: '1rem' }}>
+                    <article 
+                      key={sessao.id} 
+                      className={`lux-card ${sessao.status === 'cancelado' ? 'sessao-cancelada' : ''} ${sessao.status === 'remarcado' ? 'sessao-remarcada' : ''}`} 
+                      style={{ display: 'flex', gap: '1rem', cursor: 'pointer' }}
+                      onClick={() => handleOpenSessaoModal(sessao)}
+                    >
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', borderRight: '2px solid var(--border-light)', paddingRight: '1rem' }}>
-                         <span style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--text-dark)' }}>{sessao.horaInicio}</span>
-                         <span style={{ fontSize: '1rem', color: 'var(--text-muted)', marginTop: '4px' }}>{sessao.horaFim}</span>
+                         <span style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-dark)' }}>{sessao.horaInicio}</span>
+                         <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>{sessao.horaFim}</span>
                       </div>
                       
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <h3 className="card-title" style={{ fontSize: '1.3rem', marginBottom: '0.25rem' }}>{sessao.nomeAprendente}</h3>
-                        <span className="text-muted" style={{ fontSize: '1.1rem' }}>{sessao.tipoSessao}</span>
+                        <h3 className="card-title" style={{ fontSize: '1.05rem', marginBottom: '0.25rem' }}>{sessao.nomeAprendente}</h3>
+                        <span className="text-muted" style={{ fontSize: '0.9rem' }}>{sessao.tipoSessao}</span>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -1394,14 +1543,156 @@ function App() {
         </button>
         
         <button 
-          className={`nav-item ${activeTab === 'clientes' ? 'active' : ''}`}
-          onClick={() => setActiveTab('clientes')}
+          className={`nav-item ${activeTab === 'aprendentes' ? 'active' : ''}`}
+          onClick={() => setActiveTab('aprendentes')}
         >
-          <Users size={28} strokeWidth={activeTab === 'clientes' ? 2.5 : 2} />
+          <Users size={28} strokeWidth={activeTab === 'aprendentes' ? 2.5 : 2} />
           <span>Aprendentes</span>
         </button>
       </nav>
 
+      {/* NEW: Modal de Detalhes da Sessão */}
+      {showSessaoModal && selectedSessao && (
+        <div className="screen-overlay" style={{ animation: 'fadeIn 0.2s ease-out' }}>
+          <header className="screen-header">
+            <button className="btn-icon" onClick={() => setShowSessaoModal(false)}>
+              <ArrowLeft size={28} />
+            </button>
+            <h2 className="screen-title">Detalhes da Sessão</h2>
+          </header>
+
+          <div className="form-scroll-area">
+            <div className="form-container">
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <div style={{ 
+                  width: '72px', height: '72px', borderRadius: 'var(--radius-full)', 
+                  background: 'var(--accent-rose-light)', color: 'var(--accent-rose)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 1.5rem auto'
+                }}>
+                  <Clock size={36} />
+                </div>
+                <h1 style={{ marginBottom: '0.5rem', fontSize: '1.75rem' }}>{selectedSessao.nomeAprendente}</h1>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  {getStatusBadge(selectedSessao.status)}
+                </div>
+              </div>
+
+              <div className="lux-card" style={{ marginBottom: '2rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                  <div>
+                    <span className="text-muted" style={{ display: 'block', fontSize: '0.8rem', marginBottom: '4px' }}>DATA</span>
+                    <span style={{ fontWeight: 600 }}>{selectedSessao.dataRealizacao.split('-').reverse().join('/')}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted" style={{ display: 'block', fontSize: '0.8rem', marginBottom: '4px' }}>HORÁRIO</span>
+                    <span style={{ fontWeight: 600 }}>{selectedSessao.horaInicio} - {selectedSessao.horaFim}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted" style={{ display: 'block', fontSize: '0.8rem', marginBottom: '4px' }}>TIPO</span>
+                    <span style={{ fontWeight: 600 }}>{selectedSessao.tipoSessao}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted" style={{ display: 'block', fontSize: '0.8rem', marginBottom: '4px' }}>VALOR</span>
+                    <span style={{ fontWeight: 600 }}>{selectedSessao.valor}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* AÇÕES DINÂMICAS */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                
+                {selectedSessao.status === 'agendado' && (
+                  <button 
+                    className="btn-primary-large" 
+                    onClick={() => handleIniciarAtendimento(selectedSessao.id)}
+                    style={{ background: 'var(--accent-blue)', boxShadow: '0 8px 24px -4px rgba(37, 99, 235, 0.35)' }}
+                  >
+                    <Play size={18} style={{ marginRight: '8px' }} />
+                    Iniciar Atendimento
+                  </button>
+                )}
+
+                {selectedSessao.status === 'andamento' && (() => {
+                  const ap = aprendentes.find(a => a.id === selectedSessao.aprendenteId);
+                  const payInfo = ap ? getPagamentoInfo(ap) : { showPayBtn: true, label: 'Finalizar e Marcar como Pago' };
+                  
+                  if (!payInfo.showPayBtn) return (
+                    <div style={{ textAlign: 'center', padding: '1rem', background: 'var(--accent-emerald-light)', borderRadius: 'var(--radius-md)', color: 'var(--accent-emerald)', fontWeight: 600 }}>
+                      <CheckCircle size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                      {payInfo.label}
+                    </div>
+                  );
+
+                  return (
+                    <button 
+                      className="btn-primary-large" 
+                      onClick={() => handleMarcarComoPago(selectedSessao.id)}
+                      style={{ background: 'var(--accent-emerald)', boxShadow: '0 8px 24px -4px rgba(5, 150, 105, 0.35)' }}
+                    >
+                      <CheckCircle size={18} style={{ marginRight: '8px' }} />
+                      {payInfo.label}
+                    </button>
+                  );
+                })()}
+
+                {['agendado', 'andamento'].includes(selectedSessao.status) && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                    <button 
+                      className="btn-danger-outline" 
+                      onClick={() => handleCancelarSessao(selectedSessao.id)}
+                      style={{ padding: '1rem' }}
+                    >
+                      <Ban size={16} />
+                      <span style={{marginLeft: '6px'}}>Cancelar</span>
+                    </button>
+                    <button 
+                       className="btn-primary-large" 
+                       onClick={() => {}} // Apenas scroll para a área de remarcar que já está visível
+                       style={{ 
+                         padding: '0.875rem', 
+                         background: 'transparent', 
+                         color: 'var(--accent-stone)', 
+                         border: '1.5px solid var(--border-light)', 
+                         boxShadow: 'var(--shadow-lux)' 
+                       }}
+                    >
+                      <RefreshCw size={16} />
+                      <span style={{marginLeft: '6px'}}>Remarcar</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* ÁREA DE REMARCAR */}
+              {(selectedSessao.status === 'agendado' || selectedSessao.status === 'remarcado') && (
+                <div style={{ marginTop: '2.5rem', paddingTop: '2rem', borderTop: '1.5px dashed var(--border-light)' }}>
+                  <h3 style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Calendar size={20} className="text-muted" />
+                    Alterar Data/Hora
+                  </h3>
+                  <div className="form-group">
+                    <label className="form-label">Nova Data</label>
+                    <input type="date" className="form-input" value={remarcarData} onChange={(e) => setRemarcarData(e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Nova Hora de Início</label>
+                    <input type="time" className="form-input" value={remarcarHora} onChange={(e) => setRemarcarHora(e.target.value)} />
+                  </div>
+                  <button 
+                    className="btn-primary-large" 
+                    onClick={handleRemarcarSessao}
+                    disabled={!remarcarData || !remarcarHora}
+                    style={{ opacity: (!remarcarData || !remarcarHora) ? 0.5 : 1, marginTop: '0.5rem' }}
+                  >
+                    Confirmar Reagendamento
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
