@@ -46,7 +46,7 @@
 }
 
 html {
-  font-size: 50%;
+  font-size: 75%; /* 12px base - ~50% maior que o anterior para melhor leitura no celular */
 }
 
 *, *::before, *::after {
@@ -393,6 +393,10 @@ DESKTOP & TABLET OPTIMIZATIONS
 */
 
 @media (min-width: 768px) {
+  html {
+    font-size: 62.5%; /* Desktop: 10px base, mais confortável para telas grandes */
+  }
+
   body {
     padding-bottom: 0;
     background-color: #f3f4f6; /* Fundo levemente mais cinza para o app flutuar suavemente */
