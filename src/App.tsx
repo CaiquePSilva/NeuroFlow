@@ -1314,7 +1314,7 @@ function App() {
       </section>
 
       {/* Content based on Active Tab */}
-      <section>
+      <main className="content-area">
         {activeTab === 'inicio' && (
           <>
             <h2 className="section-title">Próximos Atendimentos</h2>
@@ -1484,7 +1484,7 @@ function App() {
             })()}
           </section>
         )}
-      </section>
+      </main>
 
       {/* Footer Branding */}
       <div style={{ padding: '2rem 0 3rem 0', textAlign: 'center', opacity: 0.35 }}>
