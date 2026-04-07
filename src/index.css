@@ -46,7 +46,8 @@
 }
 
 html {
-  font-size: 75%; /* 12px base - ~50% maior que o anterior para melhor leitura no celular */
+  /* 100% = respeita o tamanho de fonte configurado no celular do usuário */
+  font-size: 100%;
 }
 
 *, *::before, *::after {
