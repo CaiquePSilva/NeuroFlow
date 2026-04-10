@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useSupabaseData } from '../hooks/useSupabaseData'
 import { usePWA } from '../hooks/usePWA'
 import { parseApFromSupa, parseSesFromSupa, calcularHoraFim } from '../lib/utils'
-import type { Aprendente, SessaoAgenda, NotaSessao, ProtocoloModelo, ProtocoloAplicacaoData, PerguntaModelo, FaixaInterpretacao } from '../lib/types'
+import type { Aprendente, SessaoAgenda, NotaSessao, ProtocoloModelo, ProtocoloAplicacaoData, PerguntaModelo, FaixaInterpretacao, RAN, Encaminhamento, PIN } from '../lib/types'
 
 // ==========================================
 // Tipos do Contexto
@@ -66,6 +66,20 @@ interface AppContextValue {
   handleDuplicarModelo: (modelo: ProtocoloModelo) => Promise<ProtocoloModelo | null>
   handleSalvarAplicacao: (apl: Omit<ProtocoloAplicacaoData, 'id' | 'userId' | 'dataCriacao'>) => Promise<ProtocoloAplicacaoData | null>
   loadAplicacoesAprendente: (aprendenteId: string) => Promise<ProtocoloAplicacaoData[]>
+
+  // RAN — Relatório de Avaliação Neuropsicopedagógica (Fase 2.2)
+  handleCriarRAN: (aprendenteId: string) => Promise<RAN | null>
+  handleSalvarRAN: (ran: RAN) => Promise<void>
+  handleFinalizarRAN: (ran: RAN) => Promise<void>
+  loadRANsAprendente: (aprendenteId: string) => Promise<RAN[]>
+
+  // Encaminhamentos (Fase 2.2)
+  handleCriarEncaminhamento: (data: Omit<Encaminhamento, 'id' | 'userId' | 'dataCriacao'>) => Promise<Encaminhamento | null>
+  loadEncaminhamentosAprendente: (aprendenteId: string) => Promise<Encaminhamento[]>
+
+  // PIN — Plano de Intervenção (Fase 2.2)
+  handleSalvarPIN: (data: Omit<PIN, 'id' | 'userId' | 'dataCriacao'>) => Promise<PIN | null>
+  loadPINAprendente: (aprendenteId: string) => Promise<PIN | null>
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -108,6 +122,52 @@ const parseAplicacaoFromSupa = (db: any, modeloNome?: string): ProtocoloAplicaca
   paragrafaLaudo: db.paragrafo_laudo,
   observacoes: db.observacoes,
   dataAplicacao: db.data_aplicacao,
+  dataCriacao: db.data_criacao,
+})
+
+// ==========================================
+// Parsers de RAN / Encaminhamento / PIN
+// ==========================================
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const parseRANFromSupa = (db: any): RAN => ({
+  id: db.id,
+  aprendenteId: db.aprendente_id,
+  userId: db.user_id,
+  secaoQueixa: db.secao_queixa ?? undefined,
+  secaoProcedimentos: db.secao_procedimentos ?? [],
+  secaoResultados: db.secao_resultados ?? [],
+  secaoHipoteses: db.secao_hipoteses ?? undefined,
+  secaoRecomendacoes: db.secao_recomendacoes ?? undefined,
+  status: db.status ?? 'rascunho',
+  dataAvaliacao: db.data_avaliacao ?? undefined,
+  dataCriacao: db.data_criacao,
+  dataAtualizacao: db.data_atualizacao ?? db.data_criacao,
+})
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const parseEncaminhamentoFromSupa = (db: any): Encaminhamento => ({
+  id: db.id,
+  ranId: db.ran_id ?? undefined,
+  aprendenteId: db.aprendente_id,
+  userId: db.user_id,
+  destinatario: db.destinatario ?? undefined,
+  especialidade: db.especialidade,
+  motivo: db.motivo,
+  observacoes: db.observacoes ?? undefined,
+  dataCriacao: db.data_criacao,
+})
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const parsePINFromSupa = (db: any): PIN => ({
+  id: db.id,
+  ranId: db.ran_id ?? undefined,
+  aprendenteId: db.aprendente_id,
+  userId: db.user_id,
+  objetivos: db.objetivos ?? [],
+  frequencia: db.frequencia ?? undefined,
+  duracaoSemanas: db.duracao_semanas ?? undefined,
+  observacoes: db.observacoes ?? undefined,
   dataCriacao: db.data_criacao,
 })
 
@@ -474,6 +534,119 @@ export function AppProvider({ children, userId }: { children: ReactNode; userId:
     }])
   }
 
+  // ── RAN Handlers ─────────────────────────────────────────────────
+
+  const handleCriarRAN = async (aprendenteId: string): Promise<RAN | null> => {
+    const payload = {
+      aprendente_id: aprendenteId,
+      user_id: userId,
+      status: 'rascunho',
+      secao_queixa: null,
+      secao_procedimentos: [],
+      secao_resultados: [],
+      secao_hipoteses: null,
+      secao_recomendacoes: null,
+      data_avaliacao: new Date().toISOString().split('T')[0],
+    }
+    const { data } = await supabase.from('rans').insert([payload]).select().single()
+    if (data) return parseRANFromSupa(data)
+    return null
+  }
+
+  const handleSalvarRAN = async (ran: RAN): Promise<void> => {
+    await supabase.from('rans').update({
+      secao_queixa: ran.secaoQueixa ?? null,
+      secao_procedimentos: ran.secaoProcedimentos ?? [],
+      secao_resultados: ran.secaoResultados ?? [],
+      secao_hipoteses: ran.secaoHipoteses ?? null,
+      secao_recomendacoes: ran.secaoRecomendacoes ?? null,
+      data_avaliacao: ran.dataAvaliacao ?? null,
+      data_atualizacao: new Date().toISOString(),
+    }).eq('id', ran.id)
+  }
+
+  const handleFinalizarRAN = async (ran: RAN): Promise<void> => {
+    await supabase.from('rans').update({
+      status: 'finalizado',
+      secao_queixa: ran.secaoQueixa ?? null,
+      secao_procedimentos: ran.secaoProcedimentos ?? [],
+      secao_resultados: ran.secaoResultados ?? [],
+      secao_hipoteses: ran.secaoHipoteses ?? null,
+      secao_recomendacoes: ran.secaoRecomendacoes ?? null,
+      data_avaliacao: ran.dataAvaliacao ?? null,
+      data_atualizacao: new Date().toISOString(),
+    }).eq('id', ran.id)
+  }
+
+  const loadRANsAprendente = async (aprendenteId: string): Promise<RAN[]> => {
+    const { data } = await supabase
+      .from('rans')
+      .select('*')
+      .eq('aprendente_id', aprendenteId)
+      .order('data_criacao', { ascending: false })
+    if (!data) return []
+    return data.map(parseRANFromSupa)
+  }
+
+  // ── Encaminhamento Handlers ────────────────────────────────────
+
+  const handleCriarEncaminhamento = async (
+    enc: Omit<Encaminhamento, 'id' | 'userId' | 'dataCriacao'>
+  ): Promise<Encaminhamento | null> => {
+    const { data } = await supabase.from('encaminhamentos').insert([{
+      ran_id: enc.ranId ?? null,
+      aprendente_id: enc.aprendenteId,
+      user_id: userId,
+      destinatario: enc.destinatario ?? null,
+      especialidade: enc.especialidade,
+      motivo: enc.motivo,
+      observacoes: enc.observacoes ?? null,
+    }]).select().single()
+    if (data) return parseEncaminhamentoFromSupa(data)
+    return null
+  }
+
+  const loadEncaminhamentosAprendente = async (aprendenteId: string): Promise<Encaminhamento[]> => {
+    const { data } = await supabase
+      .from('encaminhamentos')
+      .select('*')
+      .eq('aprendente_id', aprendenteId)
+      .order('data_criacao', { ascending: false })
+    if (!data) return []
+    return data.map(parseEncaminhamentoFromSupa)
+  }
+
+  // ── PIN Handlers ───────────────────────────────────────────────
+
+  const handleSalvarPIN = async (
+    pin: Omit<PIN, 'id' | 'userId' | 'dataCriacao'>
+  ): Promise<PIN | null> => {
+    const { data } = await supabase.from('pins').insert([{
+      ran_id: pin.ranId ?? null,
+      aprendente_id: pin.aprendenteId,
+      user_id: userId,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      objetivos: pin.objetivos as any,
+      frequencia: pin.frequencia ?? null,
+      duracao_semanas: pin.duracaoSemanas ?? null,
+      observacoes: pin.observacoes ?? null,
+    }]).select().single()
+    if (data) return parsePINFromSupa(data)
+    return null
+  }
+
+  const loadPINAprendente = async (aprendenteId: string): Promise<PIN | null> => {
+    const { data } = await supabase
+      .from('pins')
+      .select('*')
+      .eq('aprendente_id', aprendenteId)
+      .order('data_criacao', { ascending: false })
+      .limit(1)
+      .single()
+    if (!data) return null
+    return parsePINFromSupa(data)
+  }
+
   // ──────────────────────────────────────
   // Render
   // ──────────────────────────────────────
@@ -513,6 +686,17 @@ export function AppProvider({ children, userId }: { children: ReactNode; userId:
         handleDuplicarModelo,
         handleSalvarAplicacao,
         loadAplicacoesAprendente,
+        // RAN
+        handleCriarRAN,
+        handleSalvarRAN,
+        handleFinalizarRAN,
+        loadRANsAprendente,
+        // Encaminhamentos
+        handleCriarEncaminhamento,
+        loadEncaminhamentosAprendente,
+        // PIN
+        handleSalvarPIN,
+        loadPINAprendente,
       }}
     >
       {children}

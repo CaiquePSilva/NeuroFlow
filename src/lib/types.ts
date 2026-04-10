@@ -129,3 +129,86 @@ export interface ProtocoloAplicacaoData {
   dataAplicacao: string
   dataCriacao: string
 }
+
+// ==========================================
+// RAN — Relatório de Avaliação Neuropsicopedagógica (Fase 2.2)
+// ==========================================
+
+export type RanStatus = 'rascunho' | 'finalizado'
+
+export interface SecaoResultadoRAN {
+  protocoloId: string
+  protocoloNome: string
+  escore?: number
+  escoreMax?: number
+  interpretacao?: string
+  paragrafaIndicativo: string   // linguagem de "indicativos", nunca "diagnóstico"
+  dataAplicacao?: string
+}
+
+export interface RAN {
+  id: string
+  aprendenteId: string
+  userId: string
+  // Seções
+  secaoQueixa?: string
+  secaoProcedimentos?: string[]
+  secaoResultados?: SecaoResultadoRAN[]
+  secaoHipoteses?: string        // "indicativos e hipóteses", nunca diagnóstico fechado
+  secaoRecomendacoes?: string
+  // Metadados
+  status: RanStatus
+  dataAvaliacao?: string
+  dataCriacao: string
+  dataAtualizacao: string
+}
+
+// ==========================================
+// Encaminhamento (Fase 2.2)
+// ==========================================
+
+export type EspecialidadeEncaminhamento =
+  | 'Neuropediatria'
+  | 'Fonoaudiologia'
+  | 'Psicologia'
+  | 'Psicopedagogia'
+  | 'Terapia Ocupacional'
+  | 'Psiquiatria Infantil'
+  | 'Oftalmologia'
+  | 'Outro'
+
+export interface Encaminhamento {
+  id: string
+  ranId?: string
+  aprendenteId: string
+  userId: string
+  destinatario?: string
+  especialidade: EspecialidadeEncaminhamento
+  motivo: string
+  observacoes?: string
+  dataCriacao: string
+}
+
+// ==========================================
+// PIN — Plano de Intervenção Neuropsicopedagógica (Fase 2.2)
+// ==========================================
+
+export interface ObjetivoIntervencao {
+  id: string
+  area: string           // Ex: "Atenção Sustentada"
+  objetivo: string       // Ex: "Ampliar capacidade de foco"
+  estrategia: string     // como trabalhar
+  prazo: string          // Ex: "3 meses"
+}
+
+export interface PIN {
+  id: string
+  ranId?: string
+  aprendenteId: string
+  userId: string
+  objetivos: ObjetivoIntervencao[]
+  frequencia?: string
+  duracaoSemanas?: number
+  observacoes?: string
+  dataCriacao: string
+}

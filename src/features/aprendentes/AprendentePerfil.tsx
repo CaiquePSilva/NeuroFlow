@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Clock, CheckCircle, Settings, FlaskConical, ChevronRight } from 'lucide-react'
+import {
+  Clock, CheckCircle, Settings, FlaskConical, ChevronRight, FileText, ClipboardList, Presentation,
+} from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { ScreenOverlay } from '../../components/layout/ScreenOverlay'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import type { Aprendente, SessaoAgenda, ProtocoloAplicacaoData } from '../../lib/types'
@@ -27,14 +30,18 @@ export function AprendentePerfil({
   onMarcarComoPago,
   onNovaAvaliacao,
 }: AprendentePerfilProps) {
-  const { loadAplicacoesAprendente } = useAppContext()
+  const { loadAplicacoesAprendente, loadRANsAprendente } = useAppContext()
+  const navigate = useNavigate()
   const [aplicacoes, setAplicacoes] = useState<ProtocoloAplicacaoData[]>([])
+  const [rans, setRans] = useState<any[]>([])
 
   useEffect(() => {
     if (!isParentMode) {
       loadAplicacoesAprendente(aprendente.id).then(setAplicacoes)
+      loadRANsAprendente(aprendente.id).then(setRans)
     }
   }, [aprendente.id, isParentMode])
+
   const sessoesDoAluno = sessoesGlobais
     .filter((s) => s.aprendenteId === aprendente.id)
     .sort((a, b) => a.dataRealizacao.localeCompare(b.dataRealizacao) || a.horaInicio.localeCompare(b.horaInicio))
@@ -342,6 +349,73 @@ export function AprendentePerfil({
             )}
 
             <div style={{ height: '1.5rem' }} />
+          </div>
+        )}
+
+        {/* ── Documentos e RAN ── */}
+        {!isParentMode && (
+          <div style={{ padding: '0 1.25rem 5rem' }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.25rem' }}>
+              <FileText size={18} style={{ color: 'var(--accent-rose)' }} />
+              Documentos e Relatórios
+            </h3>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
+              <button
+                onClick={() => navigate(`/aprendentes/${aprendente.id}/ran/novo`)}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+                  padding: '1.25rem', borderRadius: '16px', border: '1.5px solid var(--border-light)',
+                  background: 'var(--card-bg)', cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--accent-rose-light)', color: 'var(--accent-rose)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ClipboardList size={22} />
+                </div>
+                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-dark)' }}>Gerar RAN</span>
+              </button>
+
+              <button
+                onClick={() => navigate(`/aprendentes/${aprendente.id}/devolutiva`)}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+                  padding: '1.25rem', borderRadius: '16px', border: '1.5px solid var(--border-light)',
+                  background: 'var(--card-bg)', cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--accent-stone-light)', color: 'var(--accent-stone)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Presentation size={22} />
+                </div>
+                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-dark)' }}>Devolutiva</span>
+              </button>
+            </div>
+
+            {rans.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  RANs Finalizados ({rans.length})
+                </span>
+                {rans.map(r => (
+                  <div
+                    key={r.id}
+                    onClick={() => navigate(`/aprendentes/${aprendente.id}/ran/${r.id}/preview`)}
+                    className="lux-card"
+                    style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+                  >
+                    <FileText size={20} style={{ color: 'var(--accent-rose)', opacity: 0.6 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Relatório de Avaliação (RAN)</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        {new Date(r.dataAvaliacao + 'T12:00:00').toLocaleDateString('pt-BR')} · {r.status}
+                      </div>
+                    </div>
+                    <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
