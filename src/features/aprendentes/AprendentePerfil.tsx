@@ -1,8 +1,10 @@
-import { Clock, CheckCircle, Settings } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Clock, CheckCircle, Settings, FlaskConical, ChevronRight } from 'lucide-react'
 import { ScreenOverlay } from '../../components/layout/ScreenOverlay'
 import { StatusBadge } from '../../components/ui/StatusBadge'
-import type { Aprendente, SessaoAgenda } from '../../lib/types'
+import type { Aprendente, SessaoAgenda, ProtocoloAplicacaoData } from '../../lib/types'
 import { parseMoney, formatCurrency, getPagamentoInfo } from '../../lib/utils'
+import { useAppContext } from '../../context/AppContext'
 
 interface AprendentePerfilProps {
   aprendente: Aprendente
@@ -12,6 +14,7 @@ interface AprendentePerfilProps {
   onOpenConfig: () => void
   onOpenSessaoModal: (sessao: SessaoAgenda) => void
   onMarcarComoPago: (id: string) => void
+  onNovaAvaliacao: () => void
 }
 
 export function AprendentePerfil({
@@ -22,7 +25,16 @@ export function AprendentePerfil({
   onOpenConfig,
   onOpenSessaoModal,
   onMarcarComoPago,
+  onNovaAvaliacao,
 }: AprendentePerfilProps) {
+  const { loadAplicacoesAprendente } = useAppContext()
+  const [aplicacoes, setAplicacoes] = useState<ProtocoloAplicacaoData[]>([])
+
+  useEffect(() => {
+    if (!isParentMode) {
+      loadAplicacoesAprendente(aprendente.id).then(setAplicacoes)
+    }
+  }, [aprendente.id, isParentMode])
   const sessoesDoAluno = sessoesGlobais
     .filter((s) => s.aprendenteId === aprendente.id)
     .sort((a, b) => a.dataRealizacao.localeCompare(b.dataRealizacao) || a.horaInicio.localeCompare(b.horaInicio))
@@ -272,6 +284,66 @@ export function AprendentePerfil({
             </div>
           )}
         </div>
+
+        {/* ── Seção de Avaliações ── */}
+        {!isParentMode && (
+          <div style={{ padding: '1.5rem 1.25rem 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                <FlaskConical size={18} style={{ color: 'var(--accent-rose)' }} />
+                Avaliações
+              </h3>
+              <button
+                onClick={onNovaAvaliacao}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '0.5rem 1rem', borderRadius: '20px',
+                  border: 'none', background: 'var(--accent-rose)', color: 'white',
+                  fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                + Nova
+              </button>
+            </div>
+
+            {aplicacoes.length === 0 ? (
+              <div style={{
+                padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)',
+                background: 'var(--card-bg)', borderRadius: 'var(--radius-md)',
+                border: '1.5px solid var(--border-light)', fontSize: '0.9rem',
+              }}>
+                Nenhuma avaliação aplicada ainda.<br />
+                <span style={{ fontSize: '0.82rem' }}>Clique em "+ Nova" para começar.</span>
+              </div>
+            ) : (
+              aplicacoes.map((apl) => (
+                <div key={apl.id} className="lux-card" style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-dark)', marginBottom: '2px' }}>
+                      {apl.modeloNome ?? 'Protocolo'}
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                      {new Date(apl.dataAplicacao + 'T12:00:00').toLocaleDateString('pt-BR')}
+                      {apl.escoreTotal !== undefined && ` · ${apl.escoreTotal} pts`}
+                    </div>
+                  </div>
+                  {apl.interpretacao && (
+                    <span style={{
+                      fontSize: '0.78rem', fontWeight: 700,
+                      background: 'var(--accent-stone-light)', color: 'var(--accent-stone)',
+                      borderRadius: '8px', padding: '4px 10px', whiteSpace: 'nowrap',
+                    }}>
+                      {apl.interpretacao}
+                    </span>
+                  )}
+                  <ChevronRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                </div>
+              ))
+            )}
+
+            <div style={{ height: '1.5rem' }} />
+          </div>
+        )}
       </div>
     </ScreenOverlay>
   )

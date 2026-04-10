@@ -194,6 +194,7 @@ function AprendentePerfilRoute() {
         onOpenConfig={() => navigate(`/aprendentes/${id}/config`)}
         onOpenSessaoModal={(s) => setSelectedSessao(s)}
         onMarcarComoPago={handleMarcarComoPago}
+        onNovaAvaliacao={() => navigate(`/protocolos`)}
       />
       {selectedSessao && (
         <SessaoDetalheModal
