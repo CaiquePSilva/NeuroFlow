@@ -276,9 +276,6 @@ export function RANEditor() {
           {/* ── Tab 4: Hipóteses e Indicativos ── */}
           {tab === 4 && (
             <div style={{ animation: 'fadeIn 0.2s' }}>
-              <div style={{ background: 'var(--accent-rose-light)', border: '1.5px solid var(--accent-rose)', borderRadius: 'var(--radius-md)', padding: '0.875rem 1rem', marginBottom: '1.25rem', fontSize: '0.82rem', color: 'var(--accent-rose)', lineHeight: 1.5 }}>
-                ⚖️ <strong>Atenção:</strong> Use sempre linguagem de hipóteses e indicativos. Nunca afirme diagnóstico fechado.
-              </div>
               <FrasesRapidas
                 frases={FRASES_HIPOTESES}
                 onInsert={f => update({ secaoHipoteses: (ran.secaoHipoteses ?? '') + (ran.secaoHipoteses ? '\n\n' : '') + f })}
