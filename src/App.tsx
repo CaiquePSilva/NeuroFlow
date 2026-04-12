@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, Outlet } from 'react-router-dom'
 import { AppProvider, useAppContext } from './context/AppContext'
 import { useAuth } from './hooks/useAuth'
 import { LoginPage } from './features/auth/LoginPage'
@@ -36,8 +36,9 @@ import './form-styles.css'
 // Main Shell (tabs + FAB + modals)
 // ==========================================
 
-function AppShell({ onSignOut }: { onSignOut: () => void }) {
+function MainLayout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const {
     aprendentes,
     sessoesGlobais,
@@ -45,14 +46,11 @@ function AppShell({ onSignOut }: { onSignOut: () => void }) {
     handleInstallPWA,
     handleIniciarAtendimento,
     handleMarcarComoPago,
+    handleSalvarNota,
     handleCancelarSessao,
     handleRemarcarSessao,
-    handleSalvarNota,
   } = useAppContext()
 
-  const [activeTab, setActiveTab] = useState<TabId>(() => {
-    return (sessionStorage.getItem('activeTab') as TabId) || 'inicio'
-  })
   const [isFabOpen, setIsFabOpen] = useState(false)
   const [selectedSessao, setSelectedSessao] = useState<import('./lib/types').SessaoAgenda | null>(null)
   const [showSessaoModal, setShowSessaoModal] = useState(false)
@@ -62,85 +60,93 @@ function AppShell({ onSignOut }: { onSignOut: () => void }) {
     setShowSessaoModal(true)
   }
 
+  // Mapear rota atual para a aba ativa
+  let activeTab: TabId = 'inicio'
+  if (location.pathname === '/agenda') activeTab = 'agenda'
+  if (location.pathname === '/aprendentes') activeTab = 'aprendentes'
+
   const handleTabChange = (tab: TabId) => {
-    setActiveTab(tab)
-    sessionStorage.setItem('activeTab', tab)
-    navigate('/')
+    if (tab === 'inicio') navigate('/')
+    else if (tab === 'agenda') navigate('/agenda')
+    else if (tab === 'aprendentes') navigate('/aprendentes')
   }
 
   return (
     <div className="mobile-container">
-      {activeTab === 'inicio' && (
-        <DashboardPage
-          aprendentes={aprendentes}
-          sessoesGlobais={sessoesGlobais}
-          onOpenSessaoModal={handleOpenSessaoModal}
-          deferredPrompt={deferredPrompt}
-          onInstallPWA={handleInstallPWA}
-        />
-      )}
+      {/* Aqui entram as páginas das abas ou perfil */}
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {location.pathname === '/' ? (
+          <DashboardPage
+            aprendentes={aprendentes}
+            sessoesGlobais={sessoesGlobais}
+            onOpenSessaoModal={handleOpenSessaoModal}
+            deferredPrompt={deferredPrompt}
+            onInstallPWA={handleInstallPWA}
+          />
+        ) : location.pathname === '/aprendentes' ? (
+          <AprendentesList
+            aprendentes={aprendentes}
+            onSelectAprendente={(ap) => navigate(`/aprendentes/${ap.id}`)}
+          />
+        ) : location.pathname === '/agenda' ? (
+          <>
+            <header className="header-greeting" style={{ padding: '2rem 1.5rem 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                <img
+                  src="/logo.png"
+                  alt="Logo"
+                  style={{ width: '48px', height: '48px', objectFit: 'contain' }}
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-dark)', lineHeight: '1.2' }}>
+                    Espaço NeuroAprendiz
+                  </span>
+                  <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>Elvira Portes</span>
+                </div>
+              </div>
+            </header>
+            <AgendaDiaria
+              sessoesGlobais={sessoesGlobais}
+              onOpenSessaoModal={handleOpenSessaoModal}
+            />
+          </>
+        ) : (
+          <Outlet />
+        )}
 
-      {activeTab === 'aprendentes' && (
-        <AprendentesList
-          aprendentes={aprendentes}
-          onSelectAprendente={(ap) => {
-            navigate(`/aprendentes/${ap.id}`)
+        {/* Branding Footer (só nas abas principais) */}
+        {(location.pathname === '/' || location.pathname === '/agenda' || location.pathname === '/aprendentes') && (
+          <div style={{ padding: '2rem 0 3rem 0', textAlign: 'center', opacity: 0.35 }}>
+            <span style={{ fontSize: '1rem', fontWeight: 500 }}>
+              Tecnologia <strong style={{ color: 'var(--text-dark)' }}>Neuro Flow</strong>
+            </span>
+          </div>
+        )}
+      </main>
+
+      {/* FAB Menu - Visível apenas nas abas principais */}
+      {(location.pathname === '/' || location.pathname === '/agenda' || location.pathname === '/aprendentes') && (
+        <FABMenu
+          isOpen={isFabOpen}
+          onToggle={() => setIsFabOpen(!isFabOpen)}
+          onNovoAgendamento={() => {
+            setIsFabOpen(false)
+            navigate('/agendamento-rapido')
+          }}
+          onNovoAprendente={() => {
+            setIsFabOpen(false)
+            navigate('/novo-aprendente')
+          }}
+          onProtocolos={() => {
+            setIsFabOpen(false)
+            navigate('/protocolos')
           }}
         />
       )}
 
-      {activeTab === 'agenda' && (
-        <>
-          <header className="header-greeting" style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-              <img
-                src="/logo.png"
-                alt="Logo"
-                style={{ width: '48px', height: '48px', objectFit: 'contain' }}
-                onError={(e) => { e.currentTarget.style.display = 'none' }}
-              />
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-dark)', lineHeight: '1.2' }}>
-                  Espaço NeuroAprendiz
-                </span>
-                <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>Elvira Portes</span>
-              </div>
-            </div>
-          </header>
-          <AgendaDiaria
-            sessoesGlobais={sessoesGlobais}
-            onOpenSessaoModal={handleOpenSessaoModal}
-          />
-        </>
-      )}
-
-      {/* Footer Branding */}
-      <div style={{ padding: '2rem 0 3rem 0', textAlign: 'center', opacity: 0.35 }}>
-        <span style={{ fontSize: '1rem', fontWeight: 500 }}>
-          Tecnologia <strong style={{ color: 'var(--text-dark)' }}>Neuro Flow</strong>
-        </span>
-      </div>
-
-      {/* FAB Menu */}
-      <FABMenu
-        isOpen={isFabOpen}
-        onToggle={() => setIsFabOpen(!isFabOpen)}
-        onNovoAgendamento={() => {
-          setIsFabOpen(false)
-          navigate('/agendamento-rapido')
-        }}
-        onNovoAprendente={() => {
-          setIsFabOpen(false)
-          navigate('/novo-aprendente')
-        }}
-        onProtocolos={() => {
-          setIsFabOpen(false)
-          navigate('/protocolos')
-        }}
-      />
-
-      {/* Bottom Navigation */}
-      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} onSignOut={onSignOut} />
+      {/* Bottom Navigation SEM botão Sair */}
+      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
 
       {/* Session Detail Modal */}
       {showSessaoModal && selectedSessao && (
@@ -198,13 +204,7 @@ function AprendentePerfilRoute() {
         aprendente={aprendente}
         sessoesGlobais={sessoesGlobais}
         isParentMode={false}
-        onBack={() => {
-          if (window.history.length > 2) {
-            navigate(-1)
-          } else {
-             navigate('/')
-          }
-        }}
+        onBack={() => navigate(-1)}
         onOpenConfig={() => navigate(`/aprendentes/${id}/config`)}
         onOpenSessaoModal={(s) => setSelectedSessao(s)}
         onMarcarComoPago={handleMarcarComoPago}
@@ -418,7 +418,7 @@ function ProtocoloAplicarRoute() {
 // ==========================================
 
 function AuthGate() {
-  const { session, loading, signIn, signOut } = useAuth()
+  const { session, loading, signIn } = useAuth()
   const location = useLocation()
 
   // Loading spinner
@@ -452,27 +452,34 @@ function AuthGate() {
   return (
     <AppProvider userId={session.user.id}>
       <Routes>
-        {/* Main shell (tabs) */}
-        <Route path="/" element={<AppShell onSignOut={signOut} />} />
+        {/* Layout principal que contém a BottomNav */}
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<div />} /> {/* Outlet será ignorado pela lógica manual de abas dentro do MainLayout por enquanto, ou podemos usar Children */}
+          <Route path="/aprendentes" element={<div />} />
+          <Route path="/agenda" element={<div />} />
+        </Route>
 
-        {/* Aprendente flow */}
+        {/* Rotas fora das abas mas que podem herdar o layout se quisermos (opcional) */}
+        {/* Aqui vou manter o AprendentePerfil FORA do MainLayout para ocupar a tela toda se o usuário preferir, 
+            ou DENTRO se ele quer a barra embaixo. O usuário disse "sempre presente". 
+            Então vamos mover para dentro do MainLayout. */}
+        
+        <Route element={<MainLayout />}>
+           <Route path="/aprendentes/:id" element={<AprendentePerfilRoute />} />
+           {/* Outras telas que devem ter a barra inferior */}
+        </Route>
+
+        {/* Telas que ocupam TUDO sem barra (ex: Editores, Aplicação de Testes) */}
         <Route path="/novo-aprendente" element={<NovoAprendenteRoute />} />
-        <Route path="/aprendentes/:id" element={<AprendentePerfilRoute />} />
         <Route path="/aprendentes/:id/config" element={<AprendenteConfigRoute />} />
         <Route path="/aprendentes/:id/encerrar" element={<EncerrarAprendenteRoute />} />
         <Route path="/aprendentes/:id/agendar" element={<AgendarSessaoRoute />} />
-
-        {/* Agenda flow */}
         <Route path="/agendamento-rapido" element={<AgendamentoRapidoRoute />} />
-
-        {/* Protocolos */}
         <Route path="/protocolos" element={<ProtocolosListRoute />} />
         <Route path="/protocolos/novo" element={<ProtocoloConstrutor />} />
         <Route path="/protocolos/:modeloId/editar" element={<ProtocoloConstrutor />} />
         <Route path="/protocolos/:modeloId/aplicar" element={<ProtocoloAplicarRoute />} />
         <Route path="/protocolos/:modeloId/aplicar/:aprendenteId" element={<ProtocoloAplicacao />} />
-        
-        {/* RAN Routes */}
         <Route path="/aprendentes/:aprendenteId/ran/novo" element={<RANEditor />} />
         <Route path="/aprendentes/:aprendenteId/ran/:ranId" element={<RANEditor />} />
         <Route path="/aprendentes/:aprendenteId/ran/:ranId/preview" element={<RANPreview />} />

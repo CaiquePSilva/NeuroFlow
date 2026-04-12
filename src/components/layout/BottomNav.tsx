@@ -1,14 +1,13 @@
-import { Home, Calendar, Users, LogOut } from 'lucide-react'
+import { Home, Calendar, Users } from 'lucide-react'
 
 export type TabId = 'inicio' | 'agenda' | 'aprendentes'
 
 interface BottomNavProps {
   activeTab: TabId
   onTabChange: (tab: TabId) => void
-  onSignOut?: () => void
 }
 
-export function BottomNav({ activeTab, onTabChange, onSignOut }: BottomNavProps) {
+export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   return (
     <nav className="bottom-nav">
       <button
@@ -34,18 +33,6 @@ export function BottomNav({ activeTab, onTabChange, onSignOut }: BottomNavProps)
         <Users size={28} strokeWidth={activeTab === 'aprendentes' ? 2.5 : 2} />
         <span>Aprendentes</span>
       </button>
-
-      {onSignOut && (
-        <button
-          className="nav-item"
-          onClick={onSignOut}
-          title="Sair"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          <LogOut size={26} strokeWidth={2} />
-          <span>Sair</span>
-        </button>
-      )}
     </nav>
   )
 }
