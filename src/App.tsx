@@ -50,7 +50,9 @@ function AppShell({ onSignOut }: { onSignOut: () => void }) {
     handleSalvarNota,
   } = useAppContext()
 
-  const [activeTab, setActiveTab] = useState<TabId>('inicio')
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    return (sessionStorage.getItem('activeTab') as TabId) || 'inicio'
+  })
   const [isFabOpen, setIsFabOpen] = useState(false)
   const [selectedSessao, setSelectedSessao] = useState<import('./lib/types').SessaoAgenda | null>(null)
   const [showSessaoModal, setShowSessaoModal] = useState(false)
@@ -62,6 +64,7 @@ function AppShell({ onSignOut }: { onSignOut: () => void }) {
 
   const handleTabChange = (tab: TabId) => {
     setActiveTab(tab)
+    sessionStorage.setItem('activeTab', tab)
     navigate('/')
   }
 
@@ -195,7 +198,13 @@ function AprendentePerfilRoute() {
         aprendente={aprendente}
         sessoesGlobais={sessoesGlobais}
         isParentMode={false}
-        onBack={() => navigate('/')}
+        onBack={() => {
+          if (window.history.length > 2) {
+            navigate(-1)
+          } else {
+             navigate('/')
+          }
+        }}
         onOpenConfig={() => navigate(`/aprendentes/${id}/config`)}
         onOpenSessaoModal={(s) => setSelectedSessao(s)}
         onMarcarComoPago={handleMarcarComoPago}
