@@ -313,7 +313,10 @@ export function ProtocoloAplicacao() {
       <ScreenHeader
         title={modelo.nome}
         subtitle={`${respondidas}/${modelo.perguntas.length} respondidas`}
-        onBack={() => navigate(`/aprendentes/${aprendenteId}`)}
+        onBack={() => {
+          if (window.history.length > 2) navigate(-1);
+          else navigate(`/aprendentes/${aprendenteId}`);
+        }}
       />
 
       {/* Progress bar */}
@@ -400,7 +403,10 @@ export function ProtocoloAplicacao() {
               label={interpretacao?.label ?? ''}
               paragrafo={interpretacao?.paragrafo ?? ''}
               onSalvar={handleSalvar}
-              onPular={() => navigate(`/aprendentes/${aprendenteId}`)}
+              onPular={() => {
+                if (window.history.length > 2) navigate(-1);
+                else navigate(`/aprendentes/${aprendenteId}`);
+              }}
               saving={saving}
             />
           )}
