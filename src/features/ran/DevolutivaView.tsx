@@ -201,7 +201,7 @@ export function DevolutivaView({
             </p>
             <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ width: '40px', height: '1px', background: '#ccc' }}></div>
-              <span style={{ fontWeight: 800, color: '#999', fontSize: '0.9rem', textTransform: 'uppercase' }}>Equipe NeuroFlow</span>
+              <span style={{ fontWeight: 800, color: '#999', fontSize: '0.9rem', textTransform: 'uppercase' }}>Equipe Espaço NeuroAprendiz</span>
             </div>
           </div>
         </section>
