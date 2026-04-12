@@ -256,7 +256,13 @@ export function ProtocoloConstrutor() {
       <ScreenOverlay>
         <ScreenHeader
           title={isTemplate ? modeloExistente!.nome : (modeloId ? 'Editar Protocolo' : 'Novo Protocolo')}
-          onBack={() => navigate('/protocolos')}
+          onBack={() => {
+            if (window.history.length > 2) {
+              navigate(-1)
+            } else {
+              navigate('/protocolos')
+            }
+          }}
         />
 
         {/* Tabs */}

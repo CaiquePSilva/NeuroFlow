@@ -357,7 +357,13 @@ function ProtocolosListRoute() {
   const navigate = useNavigate()
   return (
     <ProtocolosList
-      onBack={() => navigate('/')}
+      onBack={() => {
+        if (window.history.length > 2) {
+          navigate(-1)
+        } else {
+          navigate('/')
+        }
+      }}
       onCriar={() => navigate('/protocolos/novo')}
       onEditar={(m) => navigate(`/protocolos/${m.id}/editar`)}
       onAplicar={(m) => navigate(`/protocolos/${m.id}/aplicar`)}
@@ -372,7 +378,10 @@ function ProtocoloAplicarRoute() {
   return (
     <div className="screen-overlay">
       <header className="screen-header">
-        <button className="btn-icon" onClick={() => navigate('/protocolos')}>
+        <button className="btn-icon" onClick={() => {
+          if (window.history.length > 2) navigate(-1);
+          else navigate('/protocolos');
+        }}>
           <span style={{ fontSize: '1.5rem' }}>←</span>
         </button>
         <h2 className="screen-title">Selecionar Aprendente</h2>
