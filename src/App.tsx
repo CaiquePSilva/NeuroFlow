@@ -195,7 +195,7 @@ function AprendentePerfilRoute() {
         aprendente={aprendente}
         sessoesGlobais={sessoesGlobais}
         isParentMode={false}
-        onBack={() => navigate(-1)}
+        onBack={() => navigate('/')}
         onOpenConfig={() => navigate(`/aprendentes/${id}/config`)}
         onOpenSessaoModal={(s) => setSelectedSessao(s)}
         onMarcarComoPago={handleMarcarComoPago}
