@@ -385,7 +385,7 @@ function ProtocoloAplicarRoute() {
           {aprendentes.filter((a) => a.status === 'ativo').map((ap) => (
             <button
               key={ap.id}
-              onClick={() => navigate(`/aprendentes/${ap.id}/avaliacoes/${modeloId}`)}
+              onClick={() => navigate(`/protocolos/${modeloId}/aplicar/${ap.id}`)}
               style={{
                 width: '100%', textAlign: 'left', padding: '1rem 1.25rem',
                 borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-light)',
