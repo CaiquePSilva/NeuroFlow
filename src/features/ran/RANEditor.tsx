@@ -5,6 +5,8 @@ import { useAppContext } from '../../context/AppContext'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FRASES_HIPOTESES, FRASES_RECOMENDACOES } from '../../lib/constants'
 import type { RAN, SecaoResultadoRAN } from '../../lib/types'
+import { generateHipoteses, generateRecomendacoes } from '../../lib/smartFill'
+import { Sparkles } from 'lucide-react'
 
 // ─── Tab Button ────────────────────────────────────────────────────
 function TabBtn({ active, label, done, onClick }: { active: boolean; label: string; done?: boolean; onClick: () => void }) {
@@ -59,14 +61,36 @@ function FrasesRapidas({ frases, onInsert }: { frases: string[]; onInsert: (f: s
 export function RANEditor() {
   const { aprendenteId, ranId } = useParams<{ aprendenteId: string; ranId?: string }>()
   const navigate = useNavigate()
-  const { aprendentes, loadRANsAprendente, handleCriarRAN, handleSalvarRAN, handleFinalizarRAN, loadAplicacoesAprendente } = useAppContext()
+  const { aprendentes, loadRANsAprendente, handleCriarRAN, handleSalvarRAN, handleFinalizarRAN, loadAplicacoesAprendente, loadNotasSessaoAprendente } = useAppContext()
 
   const aprendente = aprendentes.find(a => a.id === aprendenteId)
   const [ran, setRan] = useState<RAN | null>(null)
   const [tab, setTab] = useState<1 | 2 | 3 | 4 | 5>(1)
   const [saving, setSaving] = useState(false)
+  const [loadingInsights, setLoadingInsights] = useState(false)
   const [error, setError] = useState('')
   const [procedimento, setProcedimento] = useState('')
+
+  const handleSmartFill = async (type: 'hipoteses' | 'recomendacoes') => {
+    if (!aprendenteId || !ran) return
+    setLoadingInsights(true)
+    const notas = await loadNotasSessaoAprendente(aprendenteId)
+    setLoadingInsights(false)
+
+    if (notas.length === 0) {
+      setError('Sem notas suficientes para gerar inteligência (mínimo de 1).')
+      setTimeout(() => setError(''), 4000)
+      return
+    }
+
+    if (type === 'hipoteses') {
+      const insight = generateHipoteses(notas)
+      if (insight) update({ secaoHipoteses: (ran.secaoHipoteses ?? '') + (ran.secaoHipoteses ? '\n\n' : '') + insight })
+    } else {
+      const insight = generateRecomendacoes(notas)
+      if (insight) update({ secaoRecomendacoes: (ran.secaoRecomendacoes ?? '') + (ran.secaoRecomendacoes ? '\n\n' : '') + insight })
+    }
+  }
 
   // Load or create RAN
   useEffect(() => {
@@ -280,6 +304,22 @@ export function RANEditor() {
                 frases={FRASES_HIPOTESES}
                 onInsert={f => update({ secaoHipoteses: (ran.secaoHipoteses ?? '') + (ran.secaoHipoteses ? '\n\n' : '') + f })}
               />
+
+              <button 
+                onClick={() => handleSmartFill('hipoteses')}
+                disabled={loadingInsights}
+                style={{ 
+                  display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+                  background: 'linear-gradient(135deg, var(--accent-rose) 0%, var(--accent-gold) 100%)',
+                  color: 'white', padding: '0.875rem', borderRadius: '12px', border: 'none',
+                  fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', marginBottom: '1.25rem',
+                  boxShadow: '0 8px 24px rgba(225,29,72,0.2)', transition: 'transform 0.15s'
+                }}
+              >
+                <Sparkles size={18} />
+                {loadingInsights ? 'Extraindo Notas Mágicas...' : '✨ Sugerir Laudo com Intel. Analítica'}
+              </button>
+
               <div className="form-group">
                 <label className="form-label">Hipóteses e Indicativos Clínicos</label>
                 <textarea className="form-input" rows={10} value={ran.secaoHipoteses ?? ''}
@@ -299,6 +339,22 @@ export function RANEditor() {
                 frases={FRASES_RECOMENDACOES}
                 onInsert={f => update({ secaoRecomendacoes: (ran.secaoRecomendacoes ?? '') + (ran.secaoRecomendacoes ? '\n\n' : '') + f })}
               />
+
+              <button 
+                onClick={() => handleSmartFill('recomendacoes')}
+                disabled={loadingInsights}
+                style={{ 
+                  display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+                  background: 'var(--accent-stone)',
+                  color: 'var(--accent-gold)', padding: '0.875rem', borderRadius: '12px', border: 'none',
+                  fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', marginBottom: '1.25rem',
+                  boxShadow: '0 8px 24px rgba(28,25,23,0.15)', transition: 'transform 0.15s'
+                }}
+              >
+                <Sparkles size={18} />
+                {loadingInsights ? 'Extraindo Histórico...' : '✨ Sugerir Plano de Intervenção Automático'}
+              </button>
+
               <div className="form-group">
                 <label className="form-label">Recomendações</label>
                 <textarea className="form-input" rows={8} value={ran.secaoRecomendacoes ?? ''}

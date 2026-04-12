@@ -8,6 +8,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge'
 import type { Aprendente, SessaoAgenda, ProtocoloAplicacaoData } from '../../lib/types'
 import { parseMoney, formatCurrency, getPagamentoInfo } from '../../lib/utils'
 import { useAppContext } from '../../context/AppContext'
+import { EvolucaoVisao } from '../analytics/EvolucaoVisao'
 
 interface AprendentePerfilProps {
   aprendente: Aprendente
@@ -34,6 +35,7 @@ export function AprendentePerfil({
   const navigate = useNavigate()
   const [aplicacoes, setAplicacoes] = useState<ProtocoloAplicacaoData[]>([])
   const [rans, setRans] = useState<any[]>([])
+  const [activeTab, setActiveTab] = useState<'visao_geral' | 'evolucao'>('visao_geral')
 
   useEffect(() => {
     if (!isParentMode) {
@@ -135,9 +137,43 @@ export function AprendentePerfil({
             </p>
           </div>
 
-          {/* Financial Summary */}
-          <section className="summary-grid" style={{ marginBottom: '1.5rem' }}>
-            <div className="summary-card">
+          {/* ── Tabs Selector ── */}
+          {!isParentMode && (
+            <div style={{ display: 'flex', background: 'var(--bg-warm)', padding: '4px', borderRadius: '12px', marginBottom: '1.5rem', margin: '0 1.25rem 1.5rem' }}>
+              <button
+                onClick={() => setActiveTab('visao_geral')}
+                style={{
+                  flex: 1, padding: '10px', border: 'none', borderRadius: '8px',
+                  background: activeTab === 'visao_geral' ? 'white' : 'transparent',
+                  color: activeTab === 'visao_geral' ? 'var(--text-dark)' : 'var(--text-muted)',
+                  fontWeight: activeTab === 'visao_geral' ? 700 : 500,
+                  boxShadow: activeTab === 'visao_geral' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+                  transition: 'all 0.2s', cursor: 'pointer', fontFamily: 'inherit'
+                }}
+              >
+                Visão Geral
+              </button>
+              <button
+                onClick={() => setActiveTab('evolucao')}
+                style={{
+                  flex: 1, padding: '10px', border: 'none', borderRadius: '8px',
+                  background: activeTab === 'evolucao' ? 'white' : 'transparent',
+                  color: activeTab === 'evolucao' ? 'var(--text-dark)' : 'var(--text-muted)',
+                  fontWeight: activeTab === 'evolucao' ? 700 : 500,
+                  boxShadow: activeTab === 'evolucao' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+                  transition: 'all 0.2s', cursor: 'pointer', fontFamily: 'inherit'
+                }}
+              >
+                Evolução
+              </button>
+            </div>
+          )}
+
+          {activeTab === 'visao_geral' && (
+            <>
+              {/* Financial Summary */}
+              <section className="summary-grid" style={{ marginBottom: '1.5rem', padding: '0 1.25rem' }}>
+                <div className="summary-card">
               <div className="summary-value" style={{ fontSize: '1.35rem', color: 'var(--text-dark)' }}>
                 {formatCurrency(totalPendente)}
               </div>
@@ -290,10 +326,14 @@ export function AprendentePerfil({
               })}
             </div>
           )}
-        </div>
+          </>
+          )} 
+        </div> {/* Fecha o form-container sem padding top para Visao Geral (Historico) */}
+
+        {/* ── Tabs Content Cont. ── */}
 
         {/* ── Seção de Avaliações ── */}
-        {!isParentMode && (
+        {!isParentMode && activeTab === 'visao_geral' && (
           <div style={{ padding: '1.5rem 1.25rem 0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
@@ -353,7 +393,7 @@ export function AprendentePerfil({
         )}
 
         {/* ── Documentos e RAN ── */}
-        {!isParentMode && (
+        {!isParentMode && activeTab === 'visao_geral' && (
           <div style={{ padding: '0 1.25rem 5rem' }}>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.25rem' }}>
               <FileText size={18} style={{ color: 'var(--accent-rose)' }} />
@@ -418,6 +458,17 @@ export function AprendentePerfil({
             )}
           </div>
         )}
+        
+        {activeTab === 'visao_geral' && <div style={{ height: '3rem' }} />}
+
+        {/* ── ABA EVOLUÇÃO ── */}
+        {!isParentMode && activeTab === 'evolucao' && (
+          <EvolucaoVisao aprendente={aprendente} />
+        )}
+        
+        {/* Fim do scroll-area (fechamento ajustado para não quebrar estilos do form-container no geral) */}
+        {activeTab === 'evolucao' && <div style={{ height: '3rem' }} />}
+
       </div>
     </ScreenOverlay>
   )

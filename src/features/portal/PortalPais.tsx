@@ -4,16 +4,20 @@ import { supabase } from '../../lib/supabase'
 import { parseApFromSupa, parseSesFromSupa, formatCurrency, parseMoney, getPagamentoInfo } from '../../lib/utils'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SessaoDetalheModal } from '../sessoes/SessaoDetalheModal'
-import type { Aprendente, SessaoAgenda } from '../../lib/types'
-import { Clock, CheckCircle, Shield } from 'lucide-react'
+import { DevolutivaView } from '../ran/DevolutivaView'
+import type { Aprendente, SessaoAgenda, RAN } from '../../lib/types'
+import { Clock, CheckCircle, Shield, FileText, Presentation } from 'lucide-react'
 
 export function PortalPais() {
   const { pin } = useParams<{ pin: string }>()
   const [aprendente, setAprendente] = useState<Aprendente | null>(null)
   const [sessoes, setSessoes] = useState<SessaoAgenda[]>([])
+  const [rans, setRans] = useState<RAN[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [selectedSessao, setSelectedSessao] = useState<SessaoAgenda | null>(null)
+  const [activeTab, setActiveTab] = useState<'sessoes' | 'documentos'>('sessoes')
+  const [showDevolutiva, setShowDevolutiva] = useState(false)
 
   useEffect(() => {
     if (!pin) { setNotFound(true); setLoading(false); return }
@@ -28,14 +32,27 @@ export function PortalPais() {
       if (!apData) { setNotFound(true); setLoading(false); return }
 
       const parsedAp = parseApFromSupa(apData)
-      const { data: sesDb } = await supabase
-        .from('sessoes')
-        .select('*')
-        .eq('aprendente_id', apData.id)
-        .order('data_realizacao', { ascending: false })
+      const [{ data: sesDb }, { data: ransDb }] = await Promise.all([
+        supabase
+          .from('sessoes')
+          .select('*')
+          .eq('aprendente_id', apData.id)
+          .order('data_realizacao', { ascending: false }),
+        supabase
+          .from('rans')
+          .select('*')
+          .eq('aprendente_id', apData.id)
+          .eq('status', 'finalizado')
+          .order('data_criacao', { ascending: false })
+      ])
 
       setAprendente(parsedAp)
       setSessoes(sesDb ? sesDb.map(parseSesFromSupa) : [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setRans(ransDb ? ransDb.map((db: any) => ({
+        id: db.id, aprendenteId: db.aprendente_id, userId: db.user_id, status: db.status,
+        dataAvaliacao: db.data_avaliacao, dataCriacao: db.data_criacao, dataAtualizacao: db.data_atualizacao
+      })) : [])
       setLoading(false)
     }
     fetchDados()
@@ -115,8 +132,40 @@ export function PortalPais() {
         </div>
       </header>
 
+      {/* Tabs */}
+      <div style={{ display: 'flex', background: 'var(--bg-warm)', padding: '4px', borderRadius: '12px', margin: '0 1.25rem 1.5rem' }}>
+        <button
+          onClick={() => setActiveTab('sessoes')}
+          style={{
+            flex: 1, padding: '10px', border: 'none', borderRadius: '8px',
+            background: activeTab === 'sessoes' ? 'white' : 'transparent',
+            color: activeTab === 'sessoes' ? 'var(--text-dark)' : 'var(--text-muted)',
+            fontWeight: activeTab === 'sessoes' ? 700 : 500,
+            boxShadow: activeTab === 'sessoes' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+            transition: 'all 0.2s', cursor: 'pointer', fontFamily: 'inherit'
+          }}
+        >
+          Sessões
+        </button>
+        <button
+          onClick={() => setActiveTab('documentos')}
+          style={{
+            flex: 1, padding: '10px', border: 'none', borderRadius: '8px',
+            background: activeTab === 'documentos' ? 'white' : 'transparent',
+            color: activeTab === 'documentos' ? 'var(--text-dark)' : 'var(--text-muted)',
+            fontWeight: activeTab === 'documentos' ? 700 : 500,
+            boxShadow: activeTab === 'documentos' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+            transition: 'all 0.2s', cursor: 'pointer', fontFamily: 'inherit'
+          }}
+        >
+          Resultados
+        </button>
+      </div>
+
       <div className="form-container" style={{ paddingTop: 0 }}>
-        {/* Resumo Financeiro */}
+        {activeTab === 'sessoes' && (
+          <>
+            {/* Resumo Financeiro */}
         <section className="summary-grid" style={{ marginBottom: '1.5rem' }}>
           <div className="summary-card">
             <div className="summary-value" style={{ fontSize: '1.25rem', color: 'var(--text-dark)' }}>
@@ -219,6 +268,55 @@ export function PortalPais() {
             })}
           </div>
         )}
+        </>
+        )}
+
+        {/* ── Aba Resultados ── */}
+        {activeTab === 'documentos' && (
+          <div style={{ paddingBottom: '2rem' }}>
+            <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem' }}>
+              <FileText size={18} />
+              Avaliações Clínicas
+            </h3>
+
+            {rans.length === 0 ? (
+              <div style={{
+                textAlign: 'center', color: 'var(--text-muted)', padding: '2.5rem 1rem',
+                background: 'var(--bg-warm)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-light)',
+              }}>
+                <p style={{ fontSize: '0.9rem' }}>Nenhum relatório finalizado liberado no momento.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {rans.map((r, i) => (
+                  <div key={r.id} className="lux-card" style={{ padding: '1.25rem', border: '1.5px solid var(--border-light)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                      <div>
+                        <h4 style={{ margin: '0 0 4px', fontSize: '1rem', color: 'var(--text-dark)' }}>Relatório RAN</h4>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          Finalizado em: {r.dataAvaliacao ? new Date(r.dataAvaliacao + 'T12:00:00').toLocaleDateString('pt-BR') : 'Data Indisponível'}
+                        </span>
+                      </div>
+                      {i === 0 && <StatusBadge status="pago" />} {/* Usa a badge verde só pra ficar bonito visualmente, denotando 'novo' */}
+                    </div>
+                    
+                    <button
+                      onClick={() => setShowDevolutiva(true)}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        background: 'var(--accent-rose)', color: 'white', border: 'none', padding: '12px',
+                        borderRadius: '12px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
+                      }}
+                    >
+                      <Presentation size={18} />
+                      Visualizar Devolutiva
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Footer */}
         <div style={{ padding: '2rem 0 4rem', textAlign: 'center', opacity: 0.35 }}>
@@ -239,6 +337,15 @@ export function PortalPais() {
           onMarcarComoPago={handleMarcarComoPago}
           onCancelarSessao={async () => {}}
           onRemarcarSessao={async () => {}}
+        />
+      )}
+
+      {/* Devolutiva View */}
+      {showDevolutiva && (
+        <DevolutivaView
+          aprendenteId={aprendente.id}
+          isParentMode={true}
+          onClose={() => setShowDevolutiva(false)}
         />
       )}
     </div>

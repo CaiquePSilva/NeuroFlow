@@ -50,22 +50,36 @@ function AreaCard({
   )
 }
 
-export function DevolutivaView() {
-  const { aprendenteId } = useParams<{ aprendenteId: string }>()
+export function DevolutivaView({
+  aprendenteId: propAprendenteId,
+  isParentMode,
+  onClose
+}: {
+  aprendenteId?: string
+  isParentMode?: boolean
+  onClose?: () => void
+} = {}) {
+  const params = useParams<{ aprendenteId: string }>()
+  const resolvedId = propAprendenteId || params.aprendenteId
   const navigate = useNavigate()
   const { aprendentes, loadRANsAprendente } = useAppContext()
 
-  const aprendente = aprendentes.find(a => a.id === aprendenteId)
+  const aprendente = aprendentes.find(a => a.id === resolvedId)
   const [ran, setRan] = useState<RAN | null>(null)
 
   useEffect(() => {
-    if (aprendenteId) {
-      loadRANsAprendente(aprendenteId).then(rans => {
+    if (resolvedId) {
+      loadRANsAprendente(resolvedId).then(rans => {
         const lastFinalized = rans.find(r => r.status === 'finalizado')
         if (lastFinalized) setRan(lastFinalized)
       })
     }
-  }, [aprendenteId])
+  }, [resolvedId])
+
+  const handleClose = () => {
+    if (onClose) onClose()
+    else navigate(-1)
+  }
 
   if (!aprendente) return <div style={{ padding: '2rem', textAlign: 'center' }}>Aprendente não encontrado.</div>
 
@@ -115,7 +129,7 @@ export function DevolutivaView() {
             <p style={{ margin: 0, color: '#666', fontWeight: 600 }}>Vamos ver como está o desenvolvimento hoje?</p>
           </div>
         </div>
-        <button onClick={() => navigate(-1)} style={{ 
+        <button onClick={handleClose} style={{ 
           width: '48px', height: '48px', borderRadius: '50%', border: 'none',
           background: '#f0f0f0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
@@ -200,7 +214,9 @@ export function DevolutivaView() {
         textAlign: 'center'
       }}>
         <p style={{ margin: 0, fontSize: '0.85rem', color: '#999', fontWeight: 600 }}>
-          Este é um resumo visual para acompanhamento familiar. O relatório técnico (RAN) completo está disponível no perfil.
+          {isParentMode 
+            ? 'Este é o seu painel visual interativo. O relatório técnico (RAN) completo é mantido pela equipe clínica em prontuário seguro.' 
+            : 'Este é um resumo visual para acompanhamento familiar. O relatório técnico (RAN) completo está disponível no perfil.'}
         </p>
       </footer>
     </div>

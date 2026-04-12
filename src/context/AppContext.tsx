@@ -80,6 +80,9 @@ interface AppContextValue {
   // PIN — Plano de Intervenção (Fase 2.2)
   handleSalvarPIN: (data: Omit<PIN, 'id' | 'userId' | 'dataCriacao'>) => Promise<PIN | null>
   loadPINAprendente: (aprendenteId: string) => Promise<PIN | null>
+
+  // Evolução Clínica (Fase 3.1)
+  loadNotasSessaoAprendente: (aprendenteId: string) => Promise<NotaSessao[]>
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -123,6 +126,19 @@ const parseAplicacaoFromSupa = (db: any, modeloNome?: string): ProtocoloAplicaca
   observacoes: db.observacoes,
   dataAplicacao: db.data_aplicacao,
   dataCriacao: db.data_criacao,
+})
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const parseNotaFromSupa = (db: any): NotaSessao => ({
+  id: db.id,
+  sessaoId: db.sessao_id,
+  aprendenteId: db.aprendente_id,
+  tags: db.tags ?? [],
+  observacao: db.observacao ?? undefined,
+  engajamento: db.engajamento ?? undefined,
+  regulacaoEmocional: db.regulacao_emocional ?? undefined,
+  atencaoSustentada: db.atencao_sustentada ?? undefined,
+  dataCriacao: db.data_criacao ?? db.created_at,
 })
 
 // ==========================================
@@ -647,6 +663,17 @@ export function AppProvider({ children, userId }: { children: ReactNode; userId:
     return parsePINFromSupa(data)
   }
 
+  // ── Evolução Clínica Handlers ──────────────────────────────────
+  const loadNotasSessaoAprendente = async (aprendenteId: string): Promise<NotaSessao[]> => {
+    const { data } = await supabase
+      .from('notas_sessao')
+      .select('*')
+      .eq('aprendente_id', aprendenteId)
+      .order('created_at', { ascending: true }) // ASC for chronological chart plotting
+    if (!data) return []
+    return data.map(parseNotaFromSupa)
+  }
+
   // ──────────────────────────────────────
   // Render
   // ──────────────────────────────────────
@@ -697,6 +724,8 @@ export function AppProvider({ children, userId }: { children: ReactNode; userId:
         // PIN
         handleSalvarPIN,
         loadPINAprendente,
+        // Evolução
+        loadNotasSessaoAprendente,
       }}
     >
       {children}
