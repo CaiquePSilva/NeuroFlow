@@ -190,7 +190,7 @@ function ResultadoScreen({
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Parágrafo do Laudo
+              Parágrafo do Relatório
             </span>
             <button
               type="button"

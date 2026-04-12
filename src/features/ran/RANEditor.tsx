@@ -317,7 +317,7 @@ export function RANEditor() {
                 }}
               >
                 <Sparkles size={18} />
-                {loadingInsights ? 'Extraindo Notas Mágicas...' : '✨ Sugerir Laudo com Intel. Analítica'}
+                {loadingInsights ? 'Extraindo Notas Mágicas...' : '✨ Sugerir Relatório com Intel. Analítica'}
               </button>
 
               <div className="form-group">

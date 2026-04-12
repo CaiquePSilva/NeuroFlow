@@ -431,7 +431,7 @@ export function ProtocoloConstrutor() {
                           style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '0.5rem 0.75rem', border: '1.5px solid var(--border-light)', borderRadius: '8px', marginBottom: '0.5rem', background: 'var(--bg-light)', color: 'var(--text-dark)', fontFamily: 'inherit' }}
                           disabled={isTemplate}
                         />
-                        <textarea rows={3} placeholder="Parágrafo para o laudo: Ex: Os resultados indicam presença de sintomas em grau leve..." value={faixa.descricaoLaudo}
+                        <textarea rows={3} placeholder="Parágrafo para o relatório: Ex: Os resultados indicam presença de sintomas em grau leve..." value={faixa.descricaoLaudo}
                           onChange={(e) => updateFaixa(i, { ...faixa, descricaoLaudo: e.target.value })}
                           style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '0.5rem 0.75rem', border: '1.5px solid var(--border-light)', borderRadius: '8px', resize: 'vertical', background: 'var(--bg-light)', color: 'var(--text-dark)', fontFamily: 'inherit' }}
                           disabled={isTemplate}
