@@ -351,7 +351,7 @@ export function DevolutivaView({
                   fontWeight: 800, color: 'var(--text-light)',
                   fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em',
                 }}>
-                  Recomendações para a família de {nomeAbreviado}
+                  Equipe Espaço NeuroAprendiz
                 </span>
               </div>
             </div>
