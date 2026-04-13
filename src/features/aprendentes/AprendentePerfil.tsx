@@ -9,6 +9,7 @@ import type { Aprendente, SessaoAgenda, ProtocoloAplicacaoData } from '../../lib
 import { parseMoney, formatCurrency, getPagamentoInfo } from '../../lib/utils'
 import { useAppContext } from '../../context/AppContext'
 import { EvolucaoVisao } from '../analytics/EvolucaoVisao'
+import { SugestaoAvaliacaoCard } from './SugestaoAvaliacaoCard'
 
 interface AprendentePerfilProps {
   aprendente: Aprendente
@@ -186,6 +187,9 @@ export function AprendentePerfil({
               <div className="summary-label">Total Recebido</div>
             </div>
           </section>
+
+          {/* ── Sugestões de Avaliação ── */}
+          <SugestaoAvaliacaoCard aprendente={aprendente} />
 
           {/* Progress Tracker (Avaliação) */}
           {ehAvaliacao && (
