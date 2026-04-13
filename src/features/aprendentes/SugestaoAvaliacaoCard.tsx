@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Brain, ChevronDown, ChevronUp, Lightbulb, AlertCircle, Info, ChevronRight } from 'lucide-react'
 import { calcularSugestoes, temAnamneseSuficiente } from '../../lib/sugestao'
+import { useAppContext } from '../../context/AppContext'
 import type { Aprendente } from '../../lib/types'
 
 const PRIORIDADE_CONFIG = {
@@ -25,20 +26,44 @@ export function SugestaoAvaliacaoCard({
   aprendente: Aprendente
   onNovaAvaliacao?: () => void
 }) {
+  const { handleSalvarSugestao, loadSugestoesAprendente } = useAppContext()
   const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  // Dismissed: inicia do localStorage (rápido) e sincroniza com Supabase
+  const localKey = `sugestao_dismissed_${aprendente.id}`
   const [dismissed, setDismissed] = useState<Set<string>>(
-    () => new Set(JSON.parse(localStorage.getItem(`sugestao_dismissed_${aprendente.id}`) || '[]'))
+    () => new Set(JSON.parse(localStorage.getItem(localKey) || '[]'))
   )
 
-  const handleDismiss = (id: string) => {
+  // Carrega status do Supabase ao montar para sincronizar entre dispositivos
+  useEffect(() => {
+    loadSugestoesAprendente(aprendente.id).then((salvas) => {
+      const archivados = salvas
+        .filter((s) => s.status === 'dispensado' || s.status === 'aplicado')
+        .map((s) => s.instrumentoId)
+      if (archivados.length > 0) {
+        setDismissed((prev) => {
+          const novo = new Set([...prev, ...archivados])
+          localStorage.setItem(localKey, JSON.stringify([...novo]))
+          return novo
+        })
+      }
+    }).catch(() => { /* offline — usa localStorage */ })
+  }, [aprendente.id])
+
+  const handleDismiss = async (id: string, justificativa: string) => {
     const novos = new Set(dismissed)
     novos.add(id)
     setDismissed(novos)
-    localStorage.setItem(`sugestao_dismissed_${aprendente.id}`, JSON.stringify([...novos]))
+    localStorage.setItem(localKey, JSON.stringify([...novos]))
+    // Persiste no Supabase (fire & forget)
+    handleSalvarSugestao(aprendente.id, id, 'dispensado', justificativa).catch(() => {})
   }
 
   const handleAplicar = (s: ReturnType<typeof calcularSugestoes>[0]) => {
-    // Salva contexto da sugestão para o ProtocolosList ler
+    // Salva como 'aplicado' no Supabase
+    handleSalvarSugestao(aprendente.id, s.id, 'aplicado', s.justificativa).catch(() => {})
+    // Salva contexto para o ProtocolosList
     sessionStorage.setItem(
       'sugestao_ativa',
       JSON.stringify({ id: s.id, nome: s.nome, dominio: s.dominioBadge })
@@ -151,7 +176,7 @@ export function SugestaoAvaliacaoCard({
 
                   {/* Botão dispensar */}
                   <button
-                    onClick={() => handleDismiss(s.id)}
+                    onClick={() => handleDismiss(s.id, s.justificativa)}
                     title="Dispensar esta sugestão"
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer',

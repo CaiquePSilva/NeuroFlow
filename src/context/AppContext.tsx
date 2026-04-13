@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useSupabaseData } from '../hooks/useSupabaseData'
 import { usePWA } from '../hooks/usePWA'
 import { parseApFromSupa, parseSesFromSupa, calcularHoraFim } from '../lib/utils'
-import type { Aprendente, SessaoAgenda, NotaSessao, ProtocoloModelo, ProtocoloAplicacaoData, PerguntaModelo, FaixaInterpretacao, RAN, Encaminhamento, PIN } from '../lib/types'
+import type { Aprendente, SessaoAgenda, NotaSessao, ProtocoloModelo, ProtocoloAplicacaoData, PerguntaModelo, FaixaInterpretacao, RAN, Encaminhamento, PIN, SugestaoSalva, SugestaoStatus } from '../lib/types'
 
 // ==========================================
 // Tipos do Contexto
@@ -83,6 +83,10 @@ interface AppContextValue {
 
   // Evolução Clínica (Fase 3.1)
   loadNotasSessaoAprendente: (aprendenteId: string) => Promise<NotaSessao[]>
+
+  // Sugestões de Avaliação (Fase 3.2)
+  handleSalvarSugestao: (aprendenteId: string, instrumentoId: string, status: SugestaoStatus, justificativa?: string) => Promise<void>
+  loadSugestoesAprendente: (aprendenteId: string) => Promise<SugestaoSalva[]>
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -674,6 +678,43 @@ export function AppProvider({ children, userId }: { children: ReactNode; userId:
     return data.map(parseNotaFromSupa)
   }
 
+  // ── Sugestões de Avaliação ─────────────────────────────────────────
+  const handleSalvarSugestao = async (
+    aprendenteId: string,
+    instrumentoId: string,
+    status: SugestaoStatus,
+    justificativa?: string
+  ): Promise<void> => {
+    // Upsert: atualiza se já existir o mesmo instrumento para o aprendente
+    await supabase.from('sugestoes_protocolos').upsert([
+      {
+        aprendente_id: aprendenteId,
+        user_id: userId,
+        instrumento_id: instrumentoId,
+        status,
+        justificativa: justificativa ?? null,
+      },
+    ], { onConflict: 'aprendente_id,instrumento_id' })
+  }
+
+  const loadSugestoesAprendente = async (aprendenteId: string): Promise<SugestaoSalva[]> => {
+    const { data } = await supabase
+      .from('sugestoes_protocolos')
+      .select('*')
+      .eq('aprendente_id', aprendenteId)
+      .eq('user_id', userId)
+    if (!data) return []
+    return data.map((d: any) => ({
+      id: d.id,
+      aprendenteId: d.aprendente_id,
+      userId: d.user_id,
+      instrumentoId: d.instrumento_id,
+      status: d.status as SugestaoStatus,
+      justificativa: d.justificativa,
+      dataCriacao: d.data_criacao,
+    }))
+  }
+
   // ──────────────────────────────────────
   // Render
   // ──────────────────────────────────────
@@ -726,6 +767,9 @@ export function AppProvider({ children, userId }: { children: ReactNode; userId:
         loadPINAprendente,
         // Evolução
         loadNotasSessaoAprendente,
+        // Sugestões
+        handleSalvarSugestao,
+        loadSugestoesAprendente,
       }}
     >
       {children}

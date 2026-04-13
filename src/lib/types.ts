@@ -212,3 +212,20 @@ export interface PIN {
   observacoes?: string
   dataCriacao: string
 }
+
+// ==========================================
+// Sugestões de Avaliação (Fase 3.2)
+// ==========================================
+
+export type SugestaoStatus = 'pendente' | 'aplicado' | 'dispensado'
+
+export interface SugestaoSalva {
+  id: string
+  aprendenteId: string
+  userId: string
+  instrumentoId: string     // ex: 'tde', 'bacmat', 'eame-ij'
+  status: SugestaoStatus
+  justificativa?: string
+  dataCriacao: string
+}
+
