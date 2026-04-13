@@ -1,11 +1,29 @@
 import { useState, useEffect } from 'react'
 import {
   X, Trophy, Target, Heart, Zap, BookOpen, MessageSquare, Sparkles as SparklesIcon,
-  ClipboardCheck,
+  ClipboardCheck, Loader2,
 } from 'lucide-react'
-import { useAppContext } from '../../context/AppContext'
 import { useNavigate, useParams } from 'react-router-dom'
-import type { RAN } from '../../lib/types'
+import { supabase } from '../../lib/supabase'
+import { parseApFromSupa } from '../../lib/utils'
+import type { Aprendente, RAN } from '../../lib/types'
+
+// ─── Parser local (espelha AppContext sem causar dependência) ──────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const parseRANFromSupa = (db: any): RAN => ({
+  id: db.id,
+  aprendenteId: db.aprendente_id,
+  userId: db.user_id,
+  secaoQueixa: db.secao_queixa ?? undefined,
+  secaoProcedimentos: db.secao_procedimentos ?? [],
+  secaoResultados: db.secao_resultados ?? [],
+  secaoHipoteses: db.secao_hipoteses ?? undefined,
+  secaoRecomendacoes: db.secao_recomendacoes ?? undefined,
+  status: db.status ?? 'rascunho',
+  dataAvaliacao: db.data_avaliacao ?? undefined,
+  dataCriacao: db.data_criacao,
+  dataAtualizacao: db.data_atualizacao ?? db.data_criacao,
+})
 
 // ─── Visual Area Card ──────────────────────────────────────────────
 function AreaCard({
@@ -79,30 +97,59 @@ function EmptyState({ icon, title, subtitle }: { icon: React.ReactNode; title: s
 }
 
 // ─── Main Component ────────────────────────────────────────────────
+// Nota: este componente NÃO usa useAppContext() intencionalmente —
+// ele é usado tanto dentro do AppProvider (app) quanto fora (portal).
+// Por isso busca dados diretamente do Supabase.
 export function DevolutivaView({
   aprendenteId: propAprendenteId,
+  aprendente: propAprendente,
   isParentMode,
   onClose,
 }: {
   aprendenteId?: string
+  aprendente?: Aprendente
   isParentMode?: boolean
   onClose?: () => void
 } = {}) {
   const params = useParams<{ aprendenteId: string }>()
   const resolvedId = propAprendenteId || params.aprendenteId
   const navigate = useNavigate()
-  const { aprendentes, loadRANsAprendente } = useAppContext()
 
-  const aprendente = aprendentes.find(a => a.id === resolvedId)
+  const [aprendente, setAprendente] = useState<Aprendente | null>(propAprendente ?? null)
   const [ran, setRan] = useState<RAN | null>(null)
+  const [loading, setLoading] = useState(!propAprendente)
 
   useEffect(() => {
-    if (resolvedId) {
-      loadRANsAprendente(resolvedId).then(rans => {
-        const lastFinalized = rans.find(r => r.status === 'finalizado')
-        if (lastFinalized) setRan(lastFinalized)
-      })
+    if (!resolvedId) return
+
+    const fetchData = async () => {
+      setLoading(true)
+
+      // Busca aprendente apenas se não foi passado como prop
+      if (!propAprendente) {
+        const { data: apData } = await supabase
+          .from('aprendentes')
+          .select('*')
+          .eq('id', resolvedId)
+          .single()
+        if (apData) setAprendente(parseApFromSupa(apData))
+      }
+
+      // Busca o RAN finalizado mais recente
+      const { data: ranData } = await supabase
+        .from('rans')
+        .select('*')
+        .eq('aprendente_id', resolvedId)
+        .eq('status', 'finalizado')
+        .order('data_criacao', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (ranData) setRan(parseRANFromSupa(ranData))
+
+      setLoading(false)
     }
+
+    fetchData()
   }, [resolvedId])
 
   const handleClose = () => {
@@ -110,11 +157,32 @@ export function DevolutivaView({
     else navigate(-1)
   }
 
-  if (!aprendente) return (
-    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-      Aprendente não encontrado.
-    </div>
-  )
+  if (loading) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 2000,
+        background: 'var(--bg-stone)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexDirection: 'column', gap: '1rem',
+      }}>
+        <Loader2 size={32} color="var(--accent-rose)" style={{ animation: 'spin 0.8s linear infinite' }} />
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Carregando devolutiva...</p>
+      </div>
+    )
+  }
+
+  if (!aprendente) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 2000,
+        background: 'var(--bg-stone)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '2rem', textAlign: 'center', color: 'var(--text-muted)',
+      }}>
+        Aprendente não encontrado.
+      </div>
+    )
+  }
 
   // Mapeia protocolos técnicos para áreas compreensíveis
   const areasMap = [
@@ -134,20 +202,12 @@ export function DevolutivaView({
     })
   }
 
-  // Fallback proporcional se não houver dados reais
   areasMap.forEach(a => { if (a.total === 0) { a.value = 7; a.total = 10 } })
 
   const temRAN = !!ran
   const nomeAbreviado = aprendente.nome.split(' ')[0]
-
-  // Primeiro parágrafo de hipóteses ou recomendações para usar como destaque
-  const trechoDestaque = ran?.secaoHipoteses
-    ? ran.secaoHipoteses.split('\n\n')[0].trim()
-    : null
-
-  const trechoRecomendacoes = ran?.secaoRecomendacoes
-    ? ran.secaoRecomendacoes.split('\n\n')[0].trim()
-    : null
+  const trechoDestaque = ran?.secaoHipoteses ? ran.secaoHipoteses.split('\n\n')[0].trim() : null
+  const trechoRecomendacoes = ran?.secaoRecomendacoes ? ran.secaoRecomendacoes.split('\n\n')[0].trim() : null
 
   return (
     <div style={{
@@ -291,9 +351,7 @@ export function DevolutivaView({
                   fontWeight: 800, color: 'var(--text-light)',
                   fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em',
                 }}>
-                  {aprendente.responsavel1
-                    ? `Recomendações para a família de ${nomeAbreviado}`
-                    : 'Equipe Clínica'}
+                  Recomendações para a família de {nomeAbreviado}
                 </span>
               </div>
             </div>
@@ -308,7 +366,7 @@ export function DevolutivaView({
 
       </main>
 
-      {/* Rodapé informativo — sem position: fixed */}
+      {/* Rodapé informativo */}
       <footer style={{
         padding: '1.5rem',
         background: 'var(--card-bg)',

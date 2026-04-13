@@ -344,6 +344,7 @@ export function PortalPais() {
       {showDevolutiva && (
         <DevolutivaView
           aprendenteId={aprendente.id}
+          aprendente={aprendente}
           isParentMode={true}
           onClose={() => setShowDevolutiva(false)}
         />
