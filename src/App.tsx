@@ -440,7 +440,11 @@ function AuthGate() {
 
   // Portal dos Pais: rota pública, não precisa de login
   if (location.pathname.startsWith('/portal/')) {
-    return <PortalPais />
+    return (
+      <Routes>
+        <Route path="/portal/:pin" element={<PortalPais />} />
+      </Routes>
+    )
   }
 
   // Não autenticado: mostrar login
