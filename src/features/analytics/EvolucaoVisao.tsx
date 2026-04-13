@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Activity, Tags, AlertTriangle, ChartBar, Compass } from 'lucide-react'
 import type { Aprendente, NotaSessao, RAN } from '../../lib/types'
 import { useAppContext } from '../../context/AppContext'
+import { CoberturaMap } from '../aprendentes/CoberturaMap'
 
 interface EvolucaoVisaoProps {
   aprendente: Aprendente
@@ -82,26 +83,33 @@ export function EvolucaoVisao({ aprendente }: EvolucaoVisaoProps) {
 
   if (notas.length === 0) {
     return (
-      <div style={{ padding: '2rem 1rem', textAlign: 'center' }}>
-        <div style={{ 
-          width: '60px', height: '60px', background: 'var(--accent-stone-light)', 
-          color: 'var(--accent-stone)', borderRadius: '50%',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 1rem'
-        }}>
-          <Activity size={32} />
+      <div>
+        <CoberturaMap aprendente={aprendente} />
+        <div style={{ padding: '2rem 1rem', textAlign: 'center' }}>
+          <div style={{ 
+            width: '60px', height: '60px', background: 'var(--accent-stone-light)', 
+            color: 'var(--accent-stone)', borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 1rem'
+          }}>
+            <Activity size={32} />
+          </div>
+          <h3 style={{ fontSize: '1.1rem', color: 'var(--text-dark)', marginBottom: '0.5rem' }}>Poucos Dados</h3>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+            Associe etiquetas (tags) e avalie o engajamento na tela de finalizar sessão para gerar o gráfico de evolução.
+          </p>
         </div>
-        <h3 style={{ fontSize: '1.1rem', color: 'var(--text-dark)', marginBottom: '0.5rem' }}>Poucos Dados</h3>
-        <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-          Associe etiquetas (tags) e avalie o engajamento na tela de finalizar sessão para gerar o gráfico de evolução.
-        </p>
       </div>
     )
   }
 
   return (
-    <div style={{ padding: '1rem', paddingBottom: '5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      
+    <div style={{ paddingBottom: '5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+      {/* Mapa de Cobertura — sempre no topo */}
+      <CoberturaMap aprendente={aprendente} />
+
+      <div style={{ padding: '0 1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Alertas */}
       {alertas.length > 0 && (
         <div style={{ 
@@ -259,6 +267,7 @@ export function EvolucaoVisao({ aprendente }: EvolucaoVisaoProps) {
         )}
 
       </section>
+      </div> {/* fecha padding inner */}
     </div>
   )
 }

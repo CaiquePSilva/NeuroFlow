@@ -1,4 +1,4 @@
-import type { Aprendente } from './types'
+import type { Aprendente, SugestaoSalva, ProtocoloAplicacaoData } from './types'
 
 // ─── Tipos ─────────────────────────────────────────────────────────
 
@@ -314,4 +314,105 @@ export function temAnamneseSuficiente(aprendente: Aprendente): boolean {
     (aprendente.diagnosticosPrevios?.length ?? 0) > 0 ||
     aprendente.motivo
   )
+}
+
+// ─── Mapa de Cobertura Diagnóstica (Sprint 5) ──────────────────────
+
+export const DOMINIOS_COBERTURA = [
+  {
+    id: 'leitura',
+    label: 'Leitura & Escrita',
+    emoji: '📖',
+    cor: '#6366f1',
+    instrumentoIds: ['tde', 'memnon', 'proade'],
+    keywordsNome: ['leitura', 'escrita', 'tde', 'memnon', 'proade', 'alfabet', 'fonolog'],
+  },
+  {
+    id: 'matematica',
+    label: 'Matemática',
+    emoji: '🔢',
+    cor: '#f59e0b',
+    instrumentoIds: ['bacmat', 'prova-soma'],
+    keywordsNome: ['matem', 'calculo', 'bacmat', 'promat', 'cuisenaire', 'numero', 'discalculia'],
+  },
+  {
+    id: 'atencao',
+    label: 'Atenção & Controle',
+    emoji: '🎯',
+    cor: '#3b82f6',
+    instrumentoIds: ['funcoes-executivas'],
+    keywordsNome: ['atencao', 'hiperativ', 'tdah', 'executiv', 'rastreio', 'comportamento', 'impulsiv'],
+  },
+  {
+    id: 'emocional',
+    label: 'Motivação & Emocional',
+    emoji: '💙',
+    cor: '#ec4899',
+    instrumentoIds: ['eame-ij', 'projetivos'],
+    keywordsNome: ['motivacao', 'emocional', 'eame', 'projetiv', 'familia', 'autoestima', 'ansiedade'],
+  },
+  {
+    id: 'socioemocional',
+    label: 'Socioemocional & TEA',
+    emoji: '🤝',
+    cor: '#10b981',
+    instrumentoIds: ['socioemocional'],
+    keywordsNome: ['social', 'autismo', 'tea', 'espectro', 'comunicacao', 'regulacao'],
+  },
+] as const
+
+export interface CoberturaInfo {
+  dominio: (typeof DOMINIOS_COBERTURA)[number]
+  coberto: boolean
+  instrumento?: string
+  dataUltimaAplicacao?: string
+  vencido: boolean     // 6+ meses sem reavaliação no domínio
+}
+
+export function calcularCobertura(
+  sugestoesSalvas: SugestaoSalva[],
+  aplicacoes: ProtocoloAplicacaoData[]
+): CoberturaInfo[] {
+  const normz = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+  return DOMINIOS_COBERTURA.map((dominio) => {
+    // 1. Sugestões marcadas como 'aplicado' pelo profissional
+    const sugestaoAplicada = sugestoesSalvas.find(
+      (s) => s.status === 'aplicado' && dominio.instrumentoIds.includes(s.instrumentoId as any)
+    )
+
+    // 2. Aplicações de protocolo com nome compatível
+    const aplicacoesDominio = aplicacoes
+      .filter((apl) => {
+        const nome = normz(apl.modeloNome ?? '')
+        return dominio.keywordsNome.some((kw) => nome.includes(normz(kw)))
+      })
+      .sort((a, b) => b.dataAplicacao.localeCompare(a.dataAplicacao))
+
+    const coberto = !!sugestaoAplicada || aplicacoesDominio.length > 0
+
+    let dataUltimaAplicacao: string | undefined
+    let instrumento: string | undefined
+
+    if (sugestaoAplicada) {
+      const instrObj = CATALOGO.find((c) => c.id === sugestaoAplicada.instrumentoId)
+      instrumento = instrObj?.nome ?? sugestaoAplicada.instrumentoId
+      dataUltimaAplicacao = aplicacoesDominio[0]?.dataAplicacao ?? sugestaoAplicada.dataCriacao
+    } else if (aplicacoesDominio.length > 0) {
+      instrumento = aplicacoesDominio[0].modeloNome ?? 'Protocolo'
+      dataUltimaAplicacao = aplicacoesDominio[0].dataAplicacao
+    }
+
+    // Vencido: coberto há 6+ meses
+    let vencido = false
+    if (coberto && dataUltimaAplicacao) {
+      const mesesDesde =
+        (Date.now() - new Date(dataUltimaAplicacao + (dataUltimaAplicacao.length === 10 ? 'T12:00:00' : '')).getTime()) /
+        (1000 * 60 * 60 * 24 * 30)
+      vencido = mesesDesde >= 6
+    }
+
+    return { dominio, coberto, instrumento, dataUltimaAplicacao, vencido }
+  })
 }
