@@ -459,14 +459,8 @@ function AuthGate() {
           <Route path="/agenda" element={<div />} />
         </Route>
 
-        {/* Rotas fora das abas mas que podem herdar o layout se quisermos (opcional) */}
-        {/* Aqui vou manter o AprendentePerfil FORA do MainLayout para ocupar a tela toda se o usuário preferir, 
-            ou DENTRO se ele quer a barra embaixo. O usuário disse "sempre presente". 
-            Então vamos mover para dentro do MainLayout. */}
-        
         <Route element={<MainLayout />}>
-           <Route path="/aprendentes/:id" element={<AprendentePerfilRoute />} />
-           {/* Outras telas que devem ter a barra inferior */}
+          <Route path="/aprendentes/:id" element={<AprendentePerfilRoute />} />
         </Route>
 
         {/* Telas que ocupam TUDO sem barra (ex: Editores, Aplicação de Testes) */}

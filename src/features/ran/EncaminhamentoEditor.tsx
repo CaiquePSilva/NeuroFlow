@@ -123,13 +123,13 @@ export function EncaminhamentoEditor() {
             </div>
           ) : (
             <div className="print-canvas" style={{
-              background: 'white',
+              background: 'var(--card-bg)',
               padding: '3rem',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
-              border: '1px solid #eee',
+              boxShadow: 'var(--shadow-card)',
+              border: '1px solid var(--border-light)',
               borderRadius: '4px',
-              color: '#1a1a1a',
-              fontFamily: 'serif',
+              color: 'var(--text-dark)',
+              fontFamily: 'inherit',
               lineHeight: 1.6
             }}>
               <style>{`

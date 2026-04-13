@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Printer, FileCheck, ArrowRight } from 'lucide-react'
 import { ScreenOverlay, ScreenHeader } from '../../components/layout/ScreenOverlay'
 import { useAppContext } from '../../context/AppContext'
@@ -80,14 +80,14 @@ export function RANPreview() {
   const aprendente = aprendentes.find(a => a.id === aprendenteId)
   const printRef = useRef<HTMLDivElement>(null)
 
-  useState(() => {
+  useEffect(() => {
     if (aprendenteId && ranId) {
       loadRANsAprendente(aprendenteId).then(rans => {
         const found = rans.find(r => r.id === ranId)
         if (found) setRan(found)
       })
     }
-  })
+  }, [aprendenteId, ranId])
 
   const handlePrint = () => {
     window.print()
@@ -102,7 +102,7 @@ export function RANPreview() {
         <ScreenHeader
           title="Pré-visualização do RAN"
           subtitle={aprendente.nome}
-          onBack={() => navigate(`/aprendentes/${aprendenteId}/ran/${ranId}`)}
+          onBack={() => navigate(-1)}
           rightAction={
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button onClick={handlePrint} style={{

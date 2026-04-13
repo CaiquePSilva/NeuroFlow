@@ -105,10 +105,10 @@ export function EvolucaoVisao({ aprendente }: EvolucaoVisaoProps) {
       {/* Alertas */}
       {alertas.length > 0 && (
         <div style={{ 
-          background: 'var(--accent-gold-light)', border: '1px solid var(--accent-gold)', 
+          background: 'var(--accent-amber-light)', border: '1px solid var(--accent-amber)', 
           borderRadius: 'var(--radius-md)', padding: '1rem' 
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b47b00', fontWeight: 700, marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-amber)', fontWeight: 700, marginBottom: '0.75rem' }}>
              <AlertTriangle size={18} />
              Alertas Clínicos
           </div>

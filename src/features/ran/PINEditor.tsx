@@ -132,7 +132,7 @@ export function PINEditor() {
               fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem',
               display: 'flex', alignItems: 'center', gap: '4px'
             }}>
-              <Plus size={16} /> Add Objetivo
+              <Plus size={16} /> Novo Objetivo
             </button>
           </div>
 

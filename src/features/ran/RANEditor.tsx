@@ -144,7 +144,7 @@ export function RANEditor() {
       } else {
         await handleSalvarRAN(ran)
       }
-      navigate(`/aprendentes/${aprendenteId!}/ran/${ran.id}/preview`)
+      navigate(`/aprendentes/${aprendenteId!}/ran/${ran.id}/preview`, { replace: true })
     } catch {
       setError('Erro ao salvar. Tente novamente.')
     } finally {
@@ -160,7 +160,7 @@ export function RANEditor() {
       <ScreenHeader
         title="RAN"
         subtitle={`Relatório de Avaliação Neuropsicopedagógica · ${aprendente.nome}`}
-        onBack={() => navigate(`/aprendentes/${aprendenteId}`)}
+        onBack={() => navigate(-1)}
         rightAction={
           <button onClick={() => handleSave(false)} disabled={saving} style={{
             padding: '0.5rem 1rem', borderRadius: '10px', border: 'none',
@@ -310,7 +310,7 @@ export function RANEditor() {
                 disabled={loadingInsights}
                 style={{ 
                   display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
-                  background: 'linear-gradient(135deg, var(--accent-rose) 0%, var(--accent-gold) 100%)',
+                  background: 'linear-gradient(135deg, var(--accent-rose) 0%, #be123c 100%)',
                   color: 'white', padding: '0.875rem', borderRadius: '12px', border: 'none',
                   fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', marginBottom: '1.25rem',
                   boxShadow: '0 8px 24px rgba(225,29,72,0.2)', transition: 'transform 0.15s'
@@ -346,13 +346,13 @@ export function RANEditor() {
                 style={{ 
                   display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
                   background: 'var(--accent-stone)',
-                  color: 'var(--accent-gold)', padding: '0.875rem', borderRadius: '12px', border: 'none',
+                  color: 'white', padding: '0.875rem', borderRadius: '12px', border: 'none',
                   fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', marginBottom: '1.25rem',
                   boxShadow: '0 8px 24px rgba(28,25,23,0.15)', transition: 'transform 0.15s'
                 }}
               >
                 <Sparkles size={18} />
-                {loadingInsights ? 'Extraindo Histórico...' : '✨ Sugerir Plano de Intervenção Automático'}
+                {loadingInsights ? 'Extraindo Histórico...' : '✨ Sugerir Recomendações com Inteligência Analítica'}
               </button>
 
               <div className="form-group">
