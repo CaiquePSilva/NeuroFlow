@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Plus, BookOpen, Copy, Trash2, ChevronRight, ClipboardList } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Plus, BookOpen, Copy, Trash2, ChevronRight, ClipboardList, Sparkles, X } from 'lucide-react'
 import { ScreenOverlay, ScreenHeader } from '../../components/layout/ScreenOverlay'
 import { useAppContext } from '../../context/AppContext'
 import type { ProtocoloModelo } from '../../lib/types'
@@ -15,6 +15,20 @@ export function ProtocolosList({ onBack, onCriar, onEditar, onAplicar }: Protoco
   const { protocolos, handleExcluirModelo, handleDuplicarModelo } = useAppContext()
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [duplicating, setDuplicating] = useState<string | null>(null)
+
+  // Lê contexto de sugestão vindo do card de anamnese
+  const [sugestaoAtiva, setSugestaoAtiva] = useState<{ id: string; nome: string; dominio: string } | null>(null)
+  useEffect(() => {
+    const raw = sessionStorage.getItem('sugestao_ativa')
+    if (raw) {
+      try { setSugestaoAtiva(JSON.parse(raw)) } catch { /* ignore */ }
+    }
+  }, [])
+
+  const handleDismissarSugestao = () => {
+    sessionStorage.removeItem('sugestao_ativa')
+    setSugestaoAtiva(null)
+  }
 
   const templates = protocolos.filter((p) => p.isTemplate)
   const meus = protocolos.filter((p) => !p.isTemplate)
@@ -36,6 +50,36 @@ export function ProtocolosList({ onBack, onCriar, onEditar, onAplicar }: Protoco
 
       <div className="form-scroll-area">
         <div className="form-container">
+
+          {/* Banner de sugestão ativa */}
+          {sugestaoAtiva && (
+            <div style={{
+              background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '1rem 1.25rem',
+              marginBottom: '1.5rem',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.75rem',
+            }}>
+              <Sparkles size={20} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', marginBottom: '2px' }}>
+                  Sugestão: {sugestaoAtiva.nome}
+                </div>
+                <div style={{ fontSize: '0.82rem', opacity: 0.85 }}>
+                  Selecione ou crie um protocolo para este instrumento. Protocolos compatíveis estão destacados abaixo.
+                </div>
+              </div>
+              <button
+                onClick={handleDismissarSugestao}
+                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer', padding: '4px 8px' }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
 
           {/* CTA Card */}
           <button
@@ -100,20 +144,27 @@ export function ProtocolosList({ onBack, onCriar, onEditar, onAplicar }: Protoco
             </div>
           )}
 
-          {meus.map((modelo) => (
-            <ModeloCard
-              key={modelo.id}
-              modelo={modelo}
-              onAplicar={() => onAplicar(modelo)}
-              onEditar={() => onEditar(modelo)}
-              onDuplicar={() => handleDuplicate(modelo)}
-              onDelete={() => setConfirmDelete(modelo.id)}
-              isDuplicating={duplicating === modelo.id}
-              confirmDelete={confirmDelete === modelo.id}
-              onCancelDelete={() => setConfirmDelete(null)}
-              onConfirmDelete={() => handleDelete(modelo.id)}
-            />
-          ))}
+          {meus.map((modelo) => {
+            const isSugerido = sugestaoAtiva
+              ? modelo.nome.toLowerCase().includes(sugestaoAtiva.id.replace('-', ' '))
+                || (modelo.descricao ?? '').toLowerCase().includes(sugestaoAtiva.id)
+              : false
+            return (
+              <ModeloCard
+                key={modelo.id}
+                modelo={modelo}
+                isSugerido={isSugerido}
+                onAplicar={() => { sessionStorage.removeItem('sugestao_ativa'); onAplicar(modelo) }}
+                onEditar={() => onEditar(modelo)}
+                onDuplicar={() => handleDuplicate(modelo)}
+                onDelete={() => setConfirmDelete(modelo.id)}
+                isDuplicating={duplicating === modelo.id}
+                confirmDelete={confirmDelete === modelo.id}
+                onCancelDelete={() => setConfirmDelete(null)}
+                onConfirmDelete={() => handleDelete(modelo.id)}
+              />
+            )
+          })}
 
           {/* Templates do Sistema */}
           <h3 style={{ marginBottom: '0.5rem', marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -151,6 +202,7 @@ export function ProtocolosList({ onBack, onCriar, onEditar, onAplicar }: Protoco
 function ModeloCard({
   modelo,
   isTemplate = false,
+  isSugerido = false,
   onAplicar,
   onEditar,
   onDuplicar,
@@ -162,6 +214,7 @@ function ModeloCard({
 }: {
   modelo: ProtocoloModelo
   isTemplate?: boolean
+  isSugerido?: boolean
   onAplicar: () => void
   onEditar?: () => void
   onDuplicar: () => void
@@ -179,7 +232,10 @@ function ModeloCard({
       className="lux-card"
       style={{
         marginBottom: '1rem',
-        borderLeft: isTemplate ? '4px solid var(--accent-stone)' : '4px solid var(--accent-rose)',
+        borderLeft: isSugerido
+          ? '4px solid #f59e0b'
+          : isTemplate ? '4px solid var(--accent-stone)' : '4px solid var(--accent-rose)',
+        boxShadow: isSugerido ? '0 0 0 2px rgba(245, 158, 11, 0.25)' : undefined,
         animation: 'fadeIn 0.3s ease',
       }}
     >
@@ -187,6 +243,15 @@ function ModeloCard({
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-dark)' }}>{modelo.nome}</span>
+            {isSugerido && (
+              <span style={{
+                fontSize: '0.7rem', fontWeight: 800, background: '#fef3c7',
+                color: '#92400e', borderRadius: '6px', padding: '2px 8px',
+                textTransform: 'uppercase', letterSpacing: '0.06em',
+              }}>
+                ✨ Sugerido
+              </span>
+            )}
             {isTemplate && (
               <span style={{
                 fontSize: '0.7rem', fontWeight: 700, background: 'var(--accent-stone-light)',

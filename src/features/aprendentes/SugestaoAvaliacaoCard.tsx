@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Brain, ChevronDown, ChevronUp, Lightbulb, AlertCircle, Info } from 'lucide-react'
+import { Brain, ChevronDown, ChevronUp, Lightbulb, AlertCircle, Info, ChevronRight } from 'lucide-react'
 import { calcularSugestoes, temAnamneseSuficiente } from '../../lib/sugestao'
 import type { Aprendente } from '../../lib/types'
 
@@ -18,7 +18,13 @@ const DOMINIO_COR: Record<string, string> = {
   socioemocional: '#10b981',
 }
 
-export function SugestaoAvaliacaoCard({ aprendente }: { aprendente: Aprendente }) {
+export function SugestaoAvaliacaoCard({
+  aprendente,
+  onNovaAvaliacao,
+}: {
+  aprendente: Aprendente
+  onNovaAvaliacao?: () => void
+}) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [dismissed, setDismissed] = useState<Set<string>>(
     () => new Set(JSON.parse(localStorage.getItem(`sugestao_dismissed_${aprendente.id}`) || '[]'))
@@ -29,6 +35,15 @@ export function SugestaoAvaliacaoCard({ aprendente }: { aprendente: Aprendente }
     novos.add(id)
     setDismissed(novos)
     localStorage.setItem(`sugestao_dismissed_${aprendente.id}`, JSON.stringify([...novos]))
+  }
+
+  const handleAplicar = (s: ReturnType<typeof calcularSugestoes>[0]) => {
+    // Salva contexto da sugestão para o ProtocolosList ler
+    sessionStorage.setItem(
+      'sugestao_ativa',
+      JSON.stringify({ id: s.id, nome: s.nome, dominio: s.dominioBadge })
+    )
+    onNovaAvaliacao?.()
   }
 
   // Sem dados de anamnese → mostrar CTA
@@ -159,6 +174,29 @@ export function SugestaoAvaliacaoCard({ aprendente }: { aprendente: Aprendente }
                   <Info size={13} style={{ flexShrink: 0, marginTop: '1px' }} />
                   <span>{s.justificativa}</span>
                 </div>
+
+                {/* Botão Aplicar — só aparece se houver callback */}
+                {onNovaAvaliacao && (
+                  <button
+                    onClick={() => handleAplicar(s)}
+                    style={{
+                      width: '100%', padding: '0.65rem 1rem',
+                      borderRadius: '10px', border: 'none',
+                      background: dominioColor, color: 'white',
+                      fontWeight: 700, fontSize: '0.88rem',
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', gap: '6px',
+                      marginBottom: '0.75rem',
+                      transition: 'opacity 0.2s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
+                    onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                  >
+                    Aplicar Protocolo <ChevronRight size={16} />
+                  </button>
+                )}
+
 
                 {/* O que busca descobrir — SEMPRE VISÍVEL */}
                 <div style={{ marginBottom: '0.75rem' }}>

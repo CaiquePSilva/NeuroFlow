@@ -189,7 +189,7 @@ export function AprendentePerfil({
           </section>
 
           {/* ── Sugestões de Avaliação ── */}
-          <SugestaoAvaliacaoCard aprendente={aprendente} />
+          <SugestaoAvaliacaoCard aprendente={aprendente} onNovaAvaliacao={onNovaAvaliacao} />
 
           {/* Progress Tracker (Avaliação) */}
           {ehAvaliacao && (
