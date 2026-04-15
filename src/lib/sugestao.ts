@@ -379,7 +379,7 @@ export function calcularCobertura(
   return DOMINIOS_COBERTURA.map((dominio) => {
     // 1. Sugestões marcadas como 'aplicado' pelo profissional
     const sugestaoAplicada = sugestoesSalvas.find(
-      (s) => s.status === 'aplicado' && dominio.instrumentoIds.includes(s.instrumentoId as any)
+      (s) => s.status === 'aplicado' && (dominio.instrumentoIds as readonly string[]).includes(s.instrumentoId)
     )
 
     // 2. Aplicações de protocolo com nome compatível

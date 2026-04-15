@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ShieldCheck, Clock, AlertTriangle, RotateCcw } from 'lucide-react'
+import { ShieldCheck, AlertTriangle, RotateCcw } from 'lucide-react'
 import { calcularCobertura } from '../../lib/sugestao'
 import { useAppContext } from '../../context/AppContext'
 import type { Aprendente, SugestaoSalva, ProtocoloAplicacaoData } from '../../lib/types'
