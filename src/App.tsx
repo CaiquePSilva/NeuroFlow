@@ -24,7 +24,6 @@ import { ProtocoloConstrutor } from './features/protocolos/ProtocoloConstrutor'
 import { ProtocoloAplicacao } from './features/protocolos/ProtocoloAplicacao'
 import { ProtocolosList } from './features/protocolos/ProtocolosList'
 import { RANEditor } from './features/ran/RANEditor'
-import { RANPreview } from './features/ran/RANPreview'
 import { EncaminhamentoEditor } from './features/ran/EncaminhamentoEditor'
 import { PINEditor } from './features/ran/PINEditor'
 import { DevolutivaView } from './features/ran/DevolutivaView'
@@ -480,7 +479,6 @@ function AuthGate() {
         <Route path="/protocolos/:modeloId/aplicar/:aprendenteId" element={<ProtocoloAplicacao />} />
         <Route path="/aprendentes/:aprendenteId/ran/novo" element={<RANEditor />} />
         <Route path="/aprendentes/:aprendenteId/ran/:ranId" element={<RANEditor />} />
-        <Route path="/aprendentes/:aprendenteId/ran/:ranId/preview" element={<RANPreview />} />
         <Route path="/aprendentes/:aprendenteId/encaminhamentos/novo" element={<EncaminhamentoEditor />} />
         <Route path="/aprendentes/:aprendenteId/pin/novo" element={<PINEditor />} />
         <Route path="/aprendentes/:aprendenteId/devolutiva" element={<DevolutivaView />} />

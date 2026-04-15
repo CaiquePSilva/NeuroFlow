@@ -144,7 +144,7 @@ export function RANEditor() {
       } else {
         await handleSalvarRAN(ran)
       }
-      navigate(`/aprendentes/${aprendenteId!}/ran/${ran.id}/preview`, { replace: true })
+      navigate(`/aprendentes/${aprendenteId!}`, { replace: true })
     } catch {
       setError('Erro ao salvar. Tente novamente.')
     } finally {

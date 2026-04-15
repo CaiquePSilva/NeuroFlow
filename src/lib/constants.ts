@@ -13,17 +13,42 @@ export const MOTIVOS_ENCERRAMENTO = [
 ]
 
 // ==========================================
-// Dados do Consultório (editar aqui por enquanto)
+// Dados do Consultório
 // ==========================================
 
 export const DADOS_PROFISSIONAL = {
-  nome: 'Elvira Portes',
+  // Identidade principal
+  nome: 'Elvira G. dos Santos Portes',
+  nomeAbreviado: 'Elvira Portes',
+  titulos: 'Pedagoga / Neuropsicopedagoga / Psicopedagoga',
   titulo: 'Neuropsicopedagoga',
-  registro: 'CRFa 12.345',        // adaptar conforme o registro real
+  registro: 'CBO 2394-25',
   consultorio: 'Espaço NeuroAprendiz',
-  endereco: 'Rua das Flores, 123 — Belo Horizonte / MG',
-  telefone: '(31) 9 9999-9999',
-  email: 'contato@neuroaprendiz.com.br',
+
+  // Contato
+  telefone: '(11) 94171-6325',
+  email: 'eportesneuropsicopedag@gmail.com',
+  instagram: '@espaconeuroaprendiz',
+
+  // Endereço (rodapé)
+  endereco: 'Tv. São Valentin 60, Itatiba, SP',
+  cidade: 'Itatiba',
+
+  // Assets
+  logoUrl: '/assets/logo-elvira.png',
+
+  // Parceiro (opcional — remover ou deixar null para não exibir)
+  parceiro: {
+    nome: 'Clínica CETMA',
+    telefone: '(11) 99931-5196',
+    instagram: '@clinicacetma',
+    logoUrl: '/assets/logo-cetma.png',
+  } as {
+    nome: string
+    telefone: string
+    instagram: string
+    logoUrl: string
+  } | null,
 }
 
 // ==========================================
