@@ -13,7 +13,8 @@
   z-index: 200;
   display: flex;
   flex-direction: column;
-  animation: slideUp 0.35s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  /* Removido o efeito de slide para parecer uma troca de tela direta */
+  animation: fadeIn 0.2s ease-out forwards;
 }
 
 @keyframes slideUp {
@@ -215,25 +216,26 @@ select.form-input {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(28, 25, 23, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--bg-stone);
   z-index: 300;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
+  flex-direction: column;
   animation: fadeIn 0.2s ease-out;
 }
 
 .confirm-modal {
   background: var(--card-bg);
-  border-radius: var(--radius-lg);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   padding: 2rem;
-  max-width: 380px;
   width: 100%;
-  box-shadow: var(--shadow-elevated);
-  animation: modalPop 0.3s cubic-bezier(0.33, 1, 0.68, 1);
+  max-width: none;
+  border-radius: 0;
+  box-shadow: none;
+  text-align: center;
 }
 
 @keyframes modalPop {
@@ -283,46 +285,7 @@ select.form-input {
 /* 
 ===================================
 DESKTOP OPTIMIZATIONS FOR OVERLAYS
+Configuração removida: Agora as telas ocupam 100% 
+tanto no mobile quanto no desktop.
 ===================================
 */
-
-@media (min-width: 768px) {
-  .screen-overlay {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 90%;
-    max-width: 550px;
-    height: 85vh;
-    border-radius: var(--radius-lg);
-    background: var(--card-bg);
-    z-index: 200;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 
-                0 0 0 9999px rgba(28, 25, 23, 0.5);
-    animation: fadeInModal 0.35s cubic-bezier(0.33, 1, 0.68, 1) forwards;
-  }
-
-  @keyframes fadeInModal {
-    from { opacity: 0; transform: translate(-50%, -45%); }
-    to { opacity: 1; transform: translate(-50%, -50%); }
-  }
-
-  .screen-header {
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    background: var(--card-bg);
-    border-bottom: 1px solid var(--border-light);
-  }
-  
-  .bottom-action-bar {
-    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-    background: var(--card-bg);
-    padding-bottom: 1.5rem;
-    border-top: 1px solid var(--border-light);
-  }
-
-  .form-container {
-    max-width: 100%;
-    padding: 1.75rem;
-  }
-}

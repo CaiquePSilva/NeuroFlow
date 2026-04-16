@@ -147,41 +147,34 @@ export function NotaSessaoSlideUp({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — agora opaco para parecer uma nova tela */}
       <div
         onClick={onPular}
         style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0,0,0,0.55)',
+          background: 'var(--bg-stone)',
           zIndex: 900,
-          animation: 'fadeIn 0.25s ease',
+          animation: 'fadeIn 0.2s ease',
         }}
       />
 
-      {/* Slide-up Panel */}
+      {/* Full-screen Panel */}
       <div
         style={{
           position: 'fixed',
-          bottom: 0,
-          left: '50%',
-          transform: 'translateX(-50%)',
+          top: 0,
+          left: 0,
           width: '100%',
-          maxWidth: '480px',
-          background: 'var(--bg-light)',
-          borderRadius: '24px 24px 0 0',
+          height: '100dvh',
+          background: 'var(--bg-stone)',
           zIndex: 901,
-          animation: 'slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-          maxHeight: '92dvh',
+          animation: 'fadeIn 0.2s ease-out',
           display: 'flex',
           flexDirection: 'column',
           overflowY: 'hidden',
         }}
       >
-        {/* Handle bar */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '0.75rem 0 0' }}>
-          <div style={{ width: '40px', height: '4px', borderRadius: '2px', background: 'var(--border-light)' }} />
-        </div>
 
         {/* Header */}
         <div
@@ -371,12 +364,6 @@ export function NotaSessaoSlideUp({
         </div>
       </div>
 
-      <style>{`
-        @keyframes slideUp {
-          from { transform: translateX(-50%) translateY(100%); }
-          to   { transform: translateX(-50%) translateY(0); }
-        }
-      `}</style>
     </>
   )
 }
