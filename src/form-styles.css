@@ -3,17 +3,16 @@
 /* ==================== */
 
 .screen-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
-  background: var(--bg-stone);
-  z-index: 200;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  background: var(--bg-stone) !important;
+  z-index: 2000 !important; /* Maior que a barra lateral */
   display: flex;
   flex-direction: column;
-  /* Removido o efeito de slide para parecer uma troca de tela direta */
   animation: fadeIn 0.2s ease-out forwards;
 }
 
@@ -76,6 +75,13 @@
   padding: 1.25rem;
   max-width: 480px;
   margin: 0 auto;
+}
+
+/* Permitir que o formulário seja mais largo em telas cheias no desktop */
+@media (min-width: 768px) {
+  .screen-overlay .form-container {
+    max-width: 800px;
+  }
 }
 
 .form-group {
@@ -211,13 +217,13 @@ select.form-input {
 /* ==================== */
 
 .confirm-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--bg-stone);
-  z-index: 300;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: var(--bg-stone) !important;
+  z-index: 3000 !important;
   display: flex;
   flex-direction: column;
   animation: fadeIn 0.2s ease-out;
